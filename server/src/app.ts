@@ -33,15 +33,43 @@ app.use('/api', limiter);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// Health / Status Check Endpoint
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'healthy',
-    service: 'Authentra API Engine',
-    version: '1.0.0',
-    environment: config.env,
-    timestamp: new Date().toISOString(),
-  });
+// Health / Status Check Endpoint with DB probe
+app.get('/api/health', async (req: Request, res: Response) => {
+  try {
+    const { prisma } = await import('./config/db.js');
+    const [userCount, orgCount, assetCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.organization.count(),
+      prisma.asset.count(),
+    ]);
+
+    res.status(200).json({
+      status: 'healthy',
+      service: 'Authentra API Engine',
+      version: '1.0.0',
+      environment: config.env,
+      database: {
+        connected: true,
+        provider: 'PostgreSQL (Neon)',
+        counts: {
+          organizations: orgCount,
+          users: userCount,
+          assets: assetCount,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (dbErr: any) {
+    res.status(503).json({
+      status: 'degraded',
+      service: 'Authentra API Engine',
+      database: {
+        connected: false,
+        error: dbErr.message,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Centralized 404 Handler

@@ -15,9 +15,18 @@
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",
     "lint": "npm run lint --workspace=server && npm run lint --workspace=client",
-    "test": "npm run test --workspace=server"
+    "test": "npm run test --workspace=server",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:reset": "prisma migrate reset --force"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.3",
+    "prisma": "^6.4.1"
   }
 }

@@ -1,0 +1,12 @@
+[package]
+name = "authentra"
+version = "1.0.0"
+authors = []
+
+[addresses]
+authentra = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "mainnet"
+subdir = "aptos-move/framework/aptos-framework"

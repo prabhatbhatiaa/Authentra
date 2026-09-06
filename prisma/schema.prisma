@@ -6,3 +6,268 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ---------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum IdentityStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum AssetStatus {
+  DRAFT
+  MINTED
+  ASSIGNED
+  ACTIVE
+  TRANSFERRED
+  REVOKED
+}
+
+enum OwnershipStatus {
+  ACTIVE
+  TRANSFERRED
+  REVOKED
+}
+
+enum TxStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum TxType {
+  IDENTITY_REGISTRATION
+  ROLE_ASSIGNMENT
+  ROLE_REVOCATION
+  ASSET_MINT
+  ASSET_ASSIGNMENT
+  ASSET_TRANSFER
+  ASSET_REVOCATION
+}
+
+// ---------------------------------------------------------
+// CORE RELATIONAL MODELS
+// ---------------------------------------------------------
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  roles       Role[]
+  assets      Asset[]
+
+  @@index([slug])
+}
+
+model User {
+  id             String     @id @default(uuid())
+  email          String     @unique
+  passwordHash   String
+  firstName      String?
+  lastName       String?
+  status         UserStatus @default(ACTIVE)
+  organizationId String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  identity       Identity?
+  userRoles      UserRole[]
+  auditEvents    AuditEvent[] @relation("ActorAuditEvents")
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Identity {
+  id                 String             @id @default(uuid())
+  did                String             @unique // did:authentra:<identifier>
+  walletAddress      String             @unique // Aptos account address (0x...)
+  status             IdentityStatus     @default(ACTIVE)
+  verificationStatus VerificationStatus @default(PENDING_VERIFICATION)
+  userId             String             @unique
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetOwnerships    AssetOwnership[]
+  assignedAssets     Asset[]            @relation("CurrentAssetOwner")
+
+  @@index([did])
+  @@index([walletAddress])
+}
+
+model Role {
+  id             String   @id @default(uuid())
+  name           String   // e.g. ADMIN, MANAGER, AUDITOR, USER
+  description    String?
+  isSystem       Boolean  @default(false)
+  organizationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rolePermissions RolePermission[]
+  userRoles      UserRole[]
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. IDENTITY_CREATE, ASSET_CREATE, ASSET_TRANSFER
+  description String?
+  category    String   // IDENTITY, RBAC, ASSET, AUDIT, VERIFICATION
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@index([category])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+// ---------------------------------------------------------
+// ASSET & OWNERSHIP MODELS
+// ---------------------------------------------------------
+
+model Asset {
+  id             String      @id @default(uuid())
+  assetNumber    Int         @unique @default(autoincrement())
+  name           String
+  description    String?
+  assetType      String      // e.g. SECURITY_TOKEN, ACCESS_PASS, CERTIFICATE, IDENTITY_CREDENTIAL
+  status         AssetStatus @default(DRAFT)
+  metadata       Json?       // Extensible metadata
+  organizationId String
+  currentOwnerId String?     // References Identity.id
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  currentOwner   Identity?        @relation("CurrentAssetOwner", fields: [currentOwnerId], references: [id], onDelete: SetNull)
+  ownerships     AssetOwnership[]
+  transactions   BlockchainTransaction[]
+
+  @@index([organizationId])
+  @@index([currentOwnerId])
+  @@index([status])
+}
+
+model AssetOwnership {
+  id         String          @id @default(uuid())
+  assetId    String
+  identityId String
+  status     OwnershipStatus @default(ACTIVE)
+  validFrom  DateTime        @default(now())
+  validTo    DateTime?       // Null when current owner
+  notes      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  asset      Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  identity   Identity        @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([identityId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------
+// BLOCKCHAIN & AUDIT MODELS
+// ---------------------------------------------------------
+
+model BlockchainTransaction {
+  id            String    @id @default(uuid())
+  txHash        String    @unique
+  txType        TxType
+  status        TxStatus  @default(PENDING)
+  blockHeight   BigInt?
+  gasUsed       BigInt?
+  senderAddress String
+  assetId       String?
+  rawPayload    Json?
+  errorMessage  String?
+  submittedAt   DateTime  @default(now())
+  confirmedAt   DateTime?
+
+  asset         Asset?       @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  auditEvents   AuditEvent[]
+
+  @@index([txHash])
+  @@index([assetId])
+  @@index([status])
+  @@index([txType])
+}
+
+model AuditEvent {
+  id            String   @id @default(uuid())
+  action        String   // LOGIN, IDENTITY_CREATED, ASSET_MINTED, etc.
+  entity        String   // USER, IDENTITY, ASSET, ROLE
+  entityId      String?
+  actorId       String?  // References User.id
+  transactionId String?  // References BlockchainTransaction.id
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  actor         User?                  @relation("ActorAuditEvents", fields: [actorId], references: [id], onDelete: SetNull)
+  transaction   BlockchainTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([entity])
+  @@index([actorId])
+  @@index([transactionId])
+  @@index([createdAt])
+}

@@ -72,6 +72,10 @@ app.get('/api/health', async (req: Request, res: Response) => {
   }
 });
 
+// Mount Routes
+import authRoutes from './routes/auth.routes.js';
+app.use('/api/auth', authRoutes);
+
 // Centralized 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({

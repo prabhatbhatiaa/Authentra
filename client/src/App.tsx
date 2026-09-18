@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { AuthModal } from './components/AuthModal';
 import { IdentityPage } from './pages/IdentityPage';
+import { AdminPortalPage } from './pages/AdminPortalPage';
 import { authClient } from './services/auth.service';
 import { UserProfile } from './types/auth.types';
 
@@ -93,7 +94,9 @@ export function App() {
     refreshHealth();
   };
 
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'admin'>('dashboard');
+
+  const isAdminOrManager = user?.roles.includes('ADMIN') || user?.roles.includes('MANAGER');
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-brand-500 selection:text-slate-950">
@@ -138,6 +141,20 @@ export function App() {
                   <Fingerprint className="w-3.5 h-3.5" />
                   <span>IDENTITY (/identity)</span>
                 </button>
+                {isAdminOrManager && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentTab('admin')}
+                    className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                      currentTab === 'admin'
+                        ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>ADMIN (/admin)</span>
+                  </button>
+                )}
               </nav>
             )}
           </div>
@@ -217,6 +234,9 @@ export function App() {
         ) : currentTab === 'identity' ? (
           /* Render Dedicated Identity Management Page (/identity) */
           <IdentityPage />
+        ) : currentTab === 'admin' ? (
+          /* Render Dedicated Admin Governance & RBAC Portal (/admin) */
+          <AdminPortalPage />
         ) : (
           /* Authenticated State: Active Executive Workspace */
           <div className="space-y-6 max-w-5xl mx-auto w-full">
@@ -344,7 +364,7 @@ export function App() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Authentra Security & Compliance Architecture</span>
           <span className="flex items-center gap-1 text-slate-400">
-            Next: Task 5 — RBAC Authorization Engine <ArrowRight className="w-3.5 h-3.5" />
+            Next: Task 7 — Move Smart Contract (Aptos) <ArrowRight className="w-3.5 h-3.5" />
           </span>
         </div>
       </footer>

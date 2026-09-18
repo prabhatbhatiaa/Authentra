@@ -76,10 +76,12 @@ app.get('/api/health', async (req: Request, res: Response) => {
 import authRoutes from './routes/auth.routes.js';
 import identityRoutes from './routes/identity.routes.js';
 import assetRoutes from './routes/asset.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/identity', identityRoutes);
 app.use('/api/assets', assetRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Centralized 404 Handler
 app.use((req: Request, res: Response) => {

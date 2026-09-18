@@ -9,11 +9,14 @@ import {
   Building2,
   CheckCircle,
   ExternalLink,
+  Boxes,
 } from 'lucide-react';
 import { AuthModal } from './components/AuthModal';
 import { IdentityPage } from './pages/IdentityPage';
 import { AdminPortalPage } from './pages/AdminPortalPage';
+import { AssetsPage } from './pages/AssetsPage';
 import { authClient } from './services/auth.service';
+
 import { UserProfile } from './types/auth.types';
 
 interface HealthData {
@@ -94,7 +97,7 @@ export function App() {
     refreshHealth();
   };
 
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'admin'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'assets' | 'admin'>('dashboard');
 
   const isAdminOrManager = user?.roles.includes('ADMIN') || user?.roles.includes('MANAGER');
 
@@ -141,6 +144,18 @@ export function App() {
                   <Fingerprint className="w-3.5 h-3.5" />
                   <span>IDENTITY (/identity)</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('assets')}
+                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                    currentTab === 'assets'
+                      ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Boxes className="w-3.5 h-3.5" />
+                  <span>ASSETS (/assets)</span>
+                </button>
                 {isAdminOrManager && (
                   <button
                     type="button"
@@ -158,6 +173,7 @@ export function App() {
               </nav>
             )}
           </div>
+
 
           <div className="flex items-center gap-4 text-sm font-mono">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">
@@ -234,10 +250,14 @@ export function App() {
         ) : currentTab === 'identity' ? (
           /* Render Dedicated Identity Management Page (/identity) */
           <IdentityPage />
+        ) : currentTab === 'assets' ? (
+          /* Render Dedicated Digital Assets Lifecycle & Ownership Page (/assets) */
+          <AssetsPage />
         ) : currentTab === 'admin' ? (
           /* Render Dedicated Admin Governance & RBAC Portal (/admin) */
           <AdminPortalPage />
         ) : (
+
           /* Authenticated State: Active Executive Workspace */
           <div className="space-y-6 max-w-5xl mx-auto w-full">
             {/* Greeting & Quick Identity Card */}

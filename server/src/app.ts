@@ -3,8 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config/index.js';
+import { prisma } from './config/db.js';
 
 const app = express();
+
 
 // Security Middleware
 app.use(helmet());
@@ -36,12 +38,12 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // Health / Status Check Endpoint with DB probe
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
-    const { prisma } = await import('./config/db.js');
     const [userCount, orgCount, assetCount] = await Promise.all([
       prisma.user.count(),
       prisma.organization.count(),
       prisma.asset.count(),
     ]);
+
 
     res.status(200).json({
       status: 'healthy',
@@ -77,11 +79,14 @@ import authRoutes from './routes/auth.routes.js';
 import identityRoutes from './routes/identity.routes.js';
 import assetRoutes from './routes/asset.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import blockchainRoutes from './routes/blockchain.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/identity', identityRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/blockchain', blockchainRoutes);
+
 
 // Centralized 404 Handler
 app.use((req: Request, res: Response) => {

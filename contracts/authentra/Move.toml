@@ -4,7 +4,8 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-authentra = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+authentra = "0x65dffe834fd05edb3dc925a90690e423b1ed550155e9ea20143cccce45c5ed7a"
+
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

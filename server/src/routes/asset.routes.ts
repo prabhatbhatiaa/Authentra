@@ -1,108 +1,85 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { assetController } from '../controllers/asset.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authorize } from '../middleware/rbac.middleware.js';
-import { prisma } from '../config/db.js';
+import { validateRequest } from '../middleware/validate.middleware.js';
+import {
+
+  createAssetSchema,
+  assignAssetSchema,
+  transferAssetSchema,
+  revokeAssetSchema,
+} from '../validators/asset.validator.js';
 
 const router = Router();
 
-/**
- * POST /api/assets
- * Protected by authenticate and authorize('ASSET_CREATE')
- */
+// 1. Create (Draft) Asset
 router.post(
   '/',
   authenticate,
   authorize('ASSET_CREATE'),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { name, description, assetType, metadata } = req.body;
-      const organizationId = req.user!.organizationId;
-
-      const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
-        include: { identity: true },
-      });
-
-      const asset = await prisma.asset.create({
-        data: {
-          name: name || 'Untitled Asset',
-          description: description || null,
-          assetType: assetType || 'SECURITY_TOKEN',
-          status: 'DRAFT',
-          organizationId,
-          currentOwnerId: user?.identity?.id || null,
-          metadata: metadata || null,
-        },
-      });
-
-      // Record audit event
-      await prisma.auditEvent.create({
-        data: {
-          action: 'ASSET_CREATED',
-          entity: 'ASSET',
-          entityId: asset.id,
-          actorId: req.user!.userId,
-          metadata: {
-            name: asset.name,
-            assetNumber: asset.assetNumber,
-          },
-        },
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Asset drafted successfully.',
-        data: { asset },
-      });
-    } catch (err: any) {
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'ASSET_CREATION_FAILED',
-          message: err.message,
-        },
-      });
-    }
-  }
+  validateRequest(createAssetSchema),
+  (req, res, next) => assetController.createAsset(req, res, next)
 );
 
-/**
- * GET /api/assets
- * Protected by authenticate and authorize('ASSET_READ')
- */
+// 2. List Assets
 router.get(
   '/',
   authenticate,
   authorize('ASSET_READ'),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const assets = await prisma.asset.findMany({
-        where: { organizationId: req.user!.organizationId },
-        include: {
-          currentOwner: {
-            select: {
-              did: true,
-              walletAddress: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+  (req, res, next) => assetController.listAssets(req, res, next)
+);
 
-      res.status(200).json({
-        success: true,
-        data: { assets },
-      });
-    } catch (err: any) {
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'ASSET_FETCH_FAILED',
-          message: err.message,
-        },
-      });
-    }
-  }
+// 3. Get Single Asset Details
+router.get(
+  '/:id',
+  authenticate,
+  authorize('ASSET_READ'),
+  (req, res, next) => assetController.getAsset(req, res, next)
+);
+
+// 4. Mint Asset
+router.post(
+  '/:id/mint',
+  authenticate,
+  authorize('ASSET_CREATE'),
+  (req, res, next) => assetController.mintAsset(req, res, next)
+);
+
+// 5. Assign Asset
+router.post(
+  '/:id/assign',
+  authenticate,
+  authorize('ASSET_TRANSFER'),
+  validateRequest(assignAssetSchema),
+  (req, res, next) => assetController.assignAsset(req, res, next)
+);
+
+// 6. Transfer Asset Custody
+router.post(
+  '/:id/transfer',
+  authenticate,
+  authorize('ASSET_TRANSFER'),
+  validateRequest(transferAssetSchema),
+  (req, res, next) => assetController.transferAsset(req, res, next)
+);
+
+// 7. Revoke Asset
+router.post(
+  '/:id/revoke',
+  authenticate,
+  authorize('ASSET_REVOKE'),
+  validateRequest(revokeAssetSchema),
+  (req, res, next) => assetController.revokeAsset(req, res, next)
+);
+
+
+// 8. Asset Ownership History
+router.get(
+  '/:id/history',
+  authenticate,
+  authorize('ASSET_READ'),
+  (req, res, next) => assetController.getHistory(req, res, next)
 );
 
 export default router;

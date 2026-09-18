@@ -11,6 +11,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { AuthModal } from './components/AuthModal';
+import { IdentityPage } from './pages/IdentityPage';
 import { authClient } from './services/auth.service';
 import { UserProfile } from './types/auth.types';
 
@@ -92,21 +93,53 @@ export function App() {
     refreshHealth();
   };
 
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity'>('dashboard');
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-brand-500 selection:text-slate-950">
       {/* Top Header */}
       <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-6 py-3.5 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <Shield className="w-5 h-5" />
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="font-semibold text-lg tracking-tight">AUTHENTRA</span>
+                <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                  v1.0.0
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="font-semibold text-lg tracking-tight">AUTHENTRA</span>
-              <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                v1.0.0-auth
-              </span>
-            </div>
+
+            {user && (
+              <nav className="hidden sm:flex items-center gap-1 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('dashboard')}
+                  className={`px-3 py-1.5 rounded-lg transition-colors ${
+                    currentTab === 'dashboard'
+                      ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  DASHBOARD
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('identity')}
+                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                    currentTab === 'identity'
+                      ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Fingerprint className="w-3.5 h-3.5" />
+                  <span>IDENTITY (/identity)</span>
+                </button>
+              </nav>
+            )}
           </div>
 
           <div className="flex items-center gap-4 text-sm font-mono">
@@ -181,6 +214,9 @@ export function App() {
               <AuthModal onSuccess={(u) => setUser(u)} />
             </div>
           </div>
+        ) : currentTab === 'identity' ? (
+          /* Render Dedicated Identity Management Page (/identity) */
+          <IdentityPage />
         ) : (
           /* Authenticated State: Active Executive Workspace */
           <div className="space-y-6 max-w-5xl mx-auto w-full">
@@ -308,7 +344,7 @@ export function App() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Authentra Security & Compliance Architecture</span>
           <span className="flex items-center gap-1 text-slate-400">
-            Next: Task 4 — Identity Management <ArrowRight className="w-3.5 h-3.5" />
+            Next: Task 5 — RBAC Authorization Engine <ArrowRight className="w-3.5 h-3.5" />
           </span>
         </div>
       </footer>

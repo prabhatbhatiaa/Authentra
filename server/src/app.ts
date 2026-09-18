@@ -74,7 +74,12 @@ app.get('/api/health', async (req: Request, res: Response) => {
 
 // Mount Routes
 import authRoutes from './routes/auth.routes.js';
+import identityRoutes from './routes/identity.routes.js';
+import assetRoutes from './routes/asset.routes.js';
+
 app.use('/api/auth', authRoutes);
+app.use('/api/identity', identityRoutes);
+app.use('/api/assets', assetRoutes);
 
 // Centralized 404 Handler
 app.use((req: Request, res: Response) => {

@@ -11,13 +11,16 @@ import {
   ExternalLink,
   Boxes,
   CheckCheck,
+  FileText,
 } from 'lucide-react';
 import { AuthModal } from './components/AuthModal';
 import { IdentityPage } from './pages/IdentityPage';
 import { AdminPortalPage } from './pages/AdminPortalPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { VerifyPage } from './pages/VerifyPage';
+import { AuditPage } from './pages/AuditPage';
 import { authClient } from './services/auth.service';
+
 
 
 import { UserProfile } from './types/auth.types';
@@ -100,7 +103,7 @@ export function App() {
     refreshHealth();
   };
 
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'assets' | 'verify' | 'admin'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'assets' | 'verify' | 'audit' | 'admin'>('dashboard');
 
   const isAdminOrManager = user?.roles.includes('ADMIN') || user?.roles.includes('MANAGER');
 
@@ -171,6 +174,18 @@ export function App() {
                   <CheckCheck className="w-3.5 h-3.5" />
                   <span>VERIFY (/verify)</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('audit')}
+                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                    currentTab === 'audit'
+                      ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>AUDIT (/audit)</span>
+                </button>
                 {isAdminOrManager && (
                   <button
                     type="button"
@@ -188,6 +203,7 @@ export function App() {
               </nav>
             )}
           </div>
+
 
 
 
@@ -272,10 +288,14 @@ export function App() {
         ) : currentTab === 'verify' ? (
           /* Render Dedicated Multi-Source Verification Engine (/verify) */
           <VerifyPage />
+        ) : currentTab === 'audit' ? (
+          /* Render Dedicated Immutable System Audit Trail (/audit) */
+          <AuditPage />
         ) : currentTab === 'admin' ? (
           /* Render Dedicated Admin Governance & RBAC Portal (/admin) */
           <AdminPortalPage />
         ) : (
+
 
 
           /* Authenticated State: Active Executive Workspace */

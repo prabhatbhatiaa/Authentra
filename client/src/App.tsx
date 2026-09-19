@@ -10,12 +10,15 @@ import {
   CheckCircle,
   ExternalLink,
   Boxes,
+  CheckCheck,
 } from 'lucide-react';
 import { AuthModal } from './components/AuthModal';
 import { IdentityPage } from './pages/IdentityPage';
 import { AdminPortalPage } from './pages/AdminPortalPage';
 import { AssetsPage } from './pages/AssetsPage';
+import { VerifyPage } from './pages/VerifyPage';
 import { authClient } from './services/auth.service';
+
 
 import { UserProfile } from './types/auth.types';
 
@@ -97,7 +100,7 @@ export function App() {
     refreshHealth();
   };
 
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'assets' | 'admin'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'assets' | 'verify' | 'admin'>('dashboard');
 
   const isAdminOrManager = user?.roles.includes('ADMIN') || user?.roles.includes('MANAGER');
 
@@ -156,6 +159,18 @@ export function App() {
                   <Boxes className="w-3.5 h-3.5" />
                   <span>ASSETS (/assets)</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('verify')}
+                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                    currentTab === 'verify'
+                      ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span>VERIFY (/verify)</span>
+                </button>
                 {isAdminOrManager && (
                   <button
                     type="button"
@@ -173,6 +188,7 @@ export function App() {
               </nav>
             )}
           </div>
+
 
 
           <div className="flex items-center gap-4 text-sm font-mono">
@@ -253,10 +269,14 @@ export function App() {
         ) : currentTab === 'assets' ? (
           /* Render Dedicated Digital Assets Lifecycle & Ownership Page (/assets) */
           <AssetsPage />
+        ) : currentTab === 'verify' ? (
+          /* Render Dedicated Multi-Source Verification Engine (/verify) */
+          <VerifyPage />
         ) : currentTab === 'admin' ? (
           /* Render Dedicated Admin Governance & RBAC Portal (/admin) */
           <AdminPortalPage />
         ) : (
+
 
           /* Authenticated State: Active Executive Workspace */
           <div className="space-y-6 max-w-5xl mx-auto w-full">

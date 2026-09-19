@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { blockchainService } from '../services/blockchain.service.js';
+import { indexerService } from '../services/indexer.service.js';
 
 export class BlockchainController {
+
   /**
    * GET /api/blockchain/status
    * Retrieve real-time network, ledger info, module configuration, and signer status
@@ -93,6 +95,40 @@ export class BlockchainController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/blockchain/sync
+   * Trigger idempotent event & transaction sync from Aptos to PostgreSQL
+   */
+  async sync(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await indexerService.syncBlockchainEvents();
+      res.status(200).json({
+        success: true,
+        message: 'Aptos blockchain events and transactions synchronized successfully.',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/blockchain/sync/status
+   * Get current indexer metrics and synchronization status
+   */
+  async getSyncStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = await indexerService.getIndexingStatus();
+      res.status(200).json({
+        success: true,
+        data: status,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const blockchainController = new BlockchainController();
+

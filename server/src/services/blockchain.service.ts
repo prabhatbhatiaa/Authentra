@@ -134,6 +134,21 @@ export class BlockchainService {
   }
 
   /**
+   * Fetch recent transactions submitted by an account on Aptos
+   */
+  public async getAccountTransactions(accountAddress: string, limit: number = 25): Promise<any[]> {
+    try {
+      const txs = await this.aptos.getAccountTransactions({
+        accountAddress,
+      });
+      return Array.isArray(txs) ? txs.slice(0, limit) : [];
+    } catch {
+      return [];
+    }
+  }
+
+
+  /**
    * Submit an entry function transaction signed by admin
    */
   public async executeEntryFunction(

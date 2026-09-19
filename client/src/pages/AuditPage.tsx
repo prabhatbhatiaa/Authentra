@@ -61,9 +61,39 @@ export const AuditPage: React.FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<string>('ALL');
   const [selectedEvent, setSelectedEvent] = useState<AuditEventItem | null>(null);
 
+  // Blockchain indexer sync state
+  const [syncing, setSyncing] = useState<boolean>(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
   const token = localStorage.getItem('authentra_token');
 
+  const handleSyncBlockchain = async () => {
+    setSyncing(true);
+    setSyncNotice(null);
+    try {
+      const res = await fetch('/api/blockchain/sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSyncNotice(
+          `Aptos sync complete: ${data.data.syncedEventsCount} events, ${data.data.newTransactionsIndexed} txs indexed (${data.data.skippedDuplicates} duplicates skipped).`
+        );
+        fetchAuditLogs(1);
+        fetchMetadata();
+      } else {
+        setSyncNotice(data.error?.message || 'Sync failed.');
+      }
+    } catch (err: any) {
+      setSyncNotice(err.message || 'Network error during sync.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const fetchMetadata = async () => {
+
     try {
       const res = await fetch('/api/audit/metadata', {
         headers: { Authorization: `Bearer ${token}` },
@@ -168,15 +198,36 @@ export const AuditPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => fetchAuditLogs(pagination.page)}
-          className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors self-start sm:self-auto"
-          title="Refresh audit log"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handleSyncBlockchain}
+            disabled={syncing}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold transition-colors disabled:opacity-50"
+            title="Index on-chain Aptos events into PostgreSQL"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            <span>{syncing ? 'Syncing...' : 'Sync Aptos Events'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => fetchAuditLogs(pagination.page)}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors"
+            title="Refresh audit log"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
+
+      {/* Sync Notice Banner */}
+      {syncNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center justify-between">
+          <span>{syncNotice}</span>
+          <button onClick={() => setSyncNotice(null)} className="text-slate-400 hover:text-slate-200 ml-4">✕</button>
+        </div>
+      )}
+
 
       {/* Filter Controls */}
       <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap items-center gap-4 text-xs font-mono">

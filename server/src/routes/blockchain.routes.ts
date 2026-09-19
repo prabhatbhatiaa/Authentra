@@ -9,4 +9,9 @@ router.get('/status', (req, res, next) => blockchainController.getStatus(req, re
 router.get('/transactions/:txHash', (req, res, next) => blockchainController.getTransaction(req, res, next));
 router.get('/account/:address', (req, res, next) => blockchainController.getAccount(req, res, next));
 
+// Blockchain event indexing & sync routes
+router.post('/sync', (req, res, next) => blockchainController.sync(req, res, next));
+router.get('/sync/status', (req, res, next) => blockchainController.getSyncStatus(req, res, next));
+
 export default router;
+

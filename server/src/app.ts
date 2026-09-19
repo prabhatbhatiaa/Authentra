@@ -82,6 +82,7 @@ import adminRoutes from './routes/admin.routes.js';
 import blockchainRoutes from './routes/blockchain.routes.js';
 import verificationRoutes from './routes/verification.routes.js';
 import auditRoutes from './routes/audit.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/identity', identityRoutes);
@@ -90,6 +91,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
 
 
 

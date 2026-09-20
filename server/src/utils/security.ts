@@ -9,7 +9,7 @@ export async function hashPassword(password: string): Promise<string> {
   return argon2.hash(password, {
     type: argon2.argon2id,
     memoryCost: config.env === 'test' ? 4096 : 65536,
-    timeCost: config.env === 'test' ? 1 : 3,
+    timeCost: config.env === 'test' ? 2 : 3,
     parallelism: 1,
   });
 }

@@ -9,7 +9,8 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "lint": "eslint src/ --ext .ts",
-    "test": "tsx src/tests/integration.test.ts"
+    "test": "tsx ../tests/integration.test.ts",
+    "test:audit": "tsx ../tests/comprehensive-audit.ts"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "^1.35.0",

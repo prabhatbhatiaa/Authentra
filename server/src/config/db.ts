@@ -7,7 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    // Only log operational errors; Neon serverless PgBouncer routinely cycles idle sockets
+    log: ['error'],
   });
 
 if (process.env.NODE_ENV !== 'production') {

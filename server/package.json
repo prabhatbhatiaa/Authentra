@@ -9,7 +9,7 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "lint": "eslint src/ --ext .ts",
-    "test": "echo \"Tests will be configured in Task 18\" && exit 0"
+    "test": "tsx src/tests/integration.test.ts"
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "^1.35.0",

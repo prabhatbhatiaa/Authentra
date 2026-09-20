@@ -15,13 +15,11 @@ export default {
           600: '#16a34a',
           900: '#14532d',
         },
-        slate: {
-          850: '#151e2e',
-          950: '#0b0f17',
-        }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        'instrument-serif': ['"Instrument Serif"', 'serif'],
+        serif: ['"Instrument Serif"', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
     },

@@ -1,18 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100%;
+}
+
 @layer base {
   :root {
-    color-scheme: dark;
+    --bg-page: #f8fafc;
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --border-color: rgba(226, 232, 240, 0.9);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+  }
+
+  .dark {
+    --bg-page: #0b0f19;
+    --card-bg: rgba(15, 23, 42, 0.7);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950;
+    @apply bg-slate-50 dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 antialiased transition-colors duration-200;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Custom subtle scrollbars for dense data views */
+  /* High performance smooth scrolling */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -21,46 +49,47 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+    @apply bg-slate-300 dark:bg-slate-700/60 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors;
+  }
+}
+
+@layer utilities {
+  .font-instrument-serif,
+  .font-serif,
+  .font-instrument {
+    font-family: 'Instrument Serif', serif !important;
+  }
+
+  /* Atelier Cubic Bezier Easing */
+  .ease-atelier {
+    transition-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
   }
 }
 
 @layer components {
-  /* Surface Cards */
-  .auth-card {
-    @apply rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-sm transition-all duration-200;
-  }
-  .auth-card-interactive {
-    @apply auth-card hover:border-slate-700 hover:bg-slate-900/90;
-  }
-
-  /* Status Badges */
-  .badge-active {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/25;
-  }
-  .badge-revoked {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-rose-500/10 text-rose-400 border border-rose-500/25;
-  }
-  .badge-pending {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-500/10 text-amber-400 border border-amber-500/25;
-  }
-  .badge-info {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-sky-500/10 text-sky-400 border border-sky-500/25;
-  }
-  .badge-neutral {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-800 text-slate-300 border border-slate-700;
+  /* Subtle Atmospheric Ambient Background */
+  .ambient-bg {
+    background-image: 
+      radial-gradient(at 15% 10%, rgba(37, 99, 235, 0.08) 0px, transparent 45%),
+      radial-gradient(at 85% 20%, rgba(99, 102, 241, 0.06) 0px, transparent 40%),
+      radial-gradient(at 50% 80%, rgba(14, 165, 233, 0.05) 0px, transparent 50%);
   }
 
-  /* Precision Inputs */
-  .auth-input {
-    @apply w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/60 transition-colors font-mono;
+  /* Refined Glass Surface */
+  .glass-panel {
+    @apply bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.08] backdrop-blur-md rounded-2xl transition-all duration-200;
+  }
+
+  .glass-panel-hover {
+    @apply glass-panel hover:border-slate-300 dark:hover:border-white/20 hover:shadow-xl hover:shadow-slate-950/5 dark:hover:shadow-black/40;
   }
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm transition-all duration-150 shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-medium text-sm transition-all duration-150 active:scale-[0.98] shadow-sm;
   }
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 font-medium text-sm transition-all duration-150 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-transparent hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-300 dark:border-white/30 text-slate-800 dark:text-white font-medium text-sm transition-all duration-150 active:scale-[0.98];
   }
 }

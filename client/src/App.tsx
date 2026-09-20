@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   Shield,
-  ArrowRight,
   LogOut,
   Fingerprint,
   CheckCircle,
@@ -250,7 +249,7 @@ export function App() {
             <div className="lg:col-span-6 space-y-6 text-left">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
                 <CheckCircle className="w-3.5 h-3.5" />
-                <span>Task 3: Production Auth Active</span>
+                <span>Enterprise Security & Cryptographic Identity</span>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
                 Decentralized Identity & <br />
@@ -311,7 +310,7 @@ export function App() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Authentra Security & Compliance Architecture</span>
           <span className="flex items-center gap-1 text-slate-400">
-            Next: Task 7 — Move Smart Contract (Aptos) <ArrowRight className="w-3.5 h-3.5" />
+            Aptos Testnet Verified • Neon PostgreSQL Secure • High-Performance UI
           </span>
         </div>
       </footer>

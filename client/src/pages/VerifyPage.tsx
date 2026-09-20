@@ -14,6 +14,9 @@ import {
   Link,
   RefreshCw,
 } from 'lucide-react';
+import { DetailSkeleton } from '../components/LoadingSkeleton';
+import { EmptyState } from '../components/EmptyState';
+import { StatusAlert } from '../components/StatusAlert';
 
 interface VerificationData {
   verdict: 'VERIFIED' | 'REVOKED' | 'MISMATCH' | 'BLOCKCHAIN_UNAVAILABLE' | 'NOT_FOUND' | 'UNANCHORED';
@@ -154,7 +157,7 @@ export const VerifyPage: React.FC = () => {
         );
       case 'UNANCHORED':
         return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/10 border border-sky-500/25 text-sky-400">
             <Layers className="w-5 h-5" />
             <span className="font-bold tracking-wider font-mono">OFF-CHAIN ONLY</span>
           </div>
@@ -225,16 +228,29 @@ export const VerifyPage: React.FC = () => {
 
       {/* Error state */}
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            <span>{error}</span>
-          </div>
-          <button onClick={() => setError(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-        </div>
+        <StatusAlert
+          type="error"
+          title="Verification Failed"
+          message={error}
+          onRetry={() => {
+            if (query.trim()) performVerification(query.trim());
+          }}
+          onDismiss={() => setError(null)}
+        />
       )}
 
+      {/* Loading state */}
+      {loading && <DetailSkeleton />}
+
       {/* Verification Result Card */}
+      {!loading && !result && !error && (
+        <EmptyState
+          icon={Shield}
+          title="Awaiting Verification Query"
+          description="Enter an asset number (#101), UUID, or name above to verify off-chain database records against live Aptos smart contracts."
+        />
+      )}
+
       {result && (
         <div className="space-y-6">
           {/* Main Verdict Banner */}

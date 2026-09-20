@@ -3,10 +3,11 @@ import {
   Boxes, 
   Plus, 
   RefreshCw, 
-  CheckCircle2, 
-  AlertTriangle, 
   History
 } from 'lucide-react';
+import { TableSkeleton } from '../components/LoadingSkeleton';
+import { EmptyState } from '../components/EmptyState';
+import { StatusAlert } from '../components/StatusAlert';
 
 interface Asset {
   id: string;
@@ -204,17 +205,17 @@ export const AssetsPage: React.FC = () => {
   const getStatusBadge = (status: Asset['status']) => {
     switch (status) {
       case 'ACTIVE':
-        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">ACTIVE</span>;
+        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">ACTIVE</span>;
       case 'MINTED':
-        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30">MINTED</span>;
+        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25">MINTED</span>;
       case 'ASSIGNED':
-        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">ASSIGNED</span>;
+        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">ASSIGNED</span>;
       case 'DRAFT':
-        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">DRAFT</span>;
+        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25">DRAFT</span>;
       case 'TRANSFERRED':
-        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">TRANSFERRED</span>;
+        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-slate-800 text-slate-300 border border-slate-700">TRANSFERRED</span>;
       case 'REVOKED':
-        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-red-500/10 text-red-400 border border-red-500/30">REVOKED</span>;
+        return <span className="px-2.5 py-1 text-xs font-mono rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/25">REVOKED</span>;
     }
   };
 
@@ -255,53 +256,54 @@ export const AssetsPage: React.FC = () => {
 
       {/* Notifications */}
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{actionSuccess}</span>
-          </div>
-          <button onClick={() => setActionSuccess(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-        </div>
+        <StatusAlert
+          type="success"
+          title="Operation Confirmed"
+          message={actionSuccess}
+          onDismiss={() => setActionSuccess(null)}
+        />
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            <span>{error}</span>
-          </div>
-          <button onClick={() => setError(null)} className="text-slate-400 hover:text-slate-200">✕</button>
-        </div>
+        <StatusAlert
+          type="error"
+          title="Asset Registry Error"
+          message={error}
+          onRetry={fetchAssets}
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {/* Assets Table */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 bg-slate-900/80 font-mono text-xs text-slate-400">
-              <tr>
-                <th className="px-6 py-4 font-medium">ASSET</th>
-                <th className="px-6 py-4 font-medium">TYPE</th>
-                <th className="px-6 py-4 font-medium">STATUS</th>
-                <th className="px-6 py-4 font-medium">CURRENT CUSTODIAN</th>
-                <th className="px-6 py-4 font-medium text-right">LIFECYCLE ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
-              {loading && assets.length === 0 ? (
+        {loading && assets.length === 0 ? (
+          <div className="p-6">
+            <TableSkeleton rows={4} cols={5} />
+          </div>
+        ) : assets.length === 0 ? (
+          <div className="p-8">
+            <EmptyState
+              icon={Boxes}
+              title="No Digital Assets Found"
+              description="No assets registered in the active organization yet. Create a draft asset to initiate the Aptos lifecycle."
+              actionLabel="Create Asset"
+              onAction={() => setShowCreateModal(true)}
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-800 bg-slate-900/80 font-mono text-xs text-slate-400">
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 animate-pulse">
-                    Querying cryptographic assets and on-chain references...
-                  </td>
+                  <th className="px-6 py-4 font-medium">ASSET</th>
+                  <th className="px-6 py-4 font-medium">TYPE</th>
+                  <th className="px-6 py-4 font-medium">STATUS</th>
+                  <th className="px-6 py-4 font-medium">CURRENT CUSTODIAN</th>
+                  <th className="px-6 py-4 font-medium text-right">LIFECYCLE ACTIONS</th>
                 </tr>
-              ) : assets.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                    No digital assets created yet. Click "Create Asset" to initiate.
-                  </td>
-                </tr>
-              ) : (
-                assets.map((asset) => (
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                {assets.map((asset) => (
                   <tr key={asset.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-white font-sans text-sm">{asset.name}</div>
@@ -338,7 +340,7 @@ export const AssetsPage: React.FC = () => {
                             type="button"
                             onClick={() => handleMint(asset)}
                             disabled={actionSubmitting}
-                            className="px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 transition-colors"
+                            className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/25 transition-colors"
                           >
                             Mint (Aptos)
                           </button>
@@ -350,7 +352,7 @@ export const AssetsPage: React.FC = () => {
                               setSelectedAsset(asset);
                               setShowActionModal('assign');
                             }}
-                            className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30 transition-colors"
+                            className="px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/25 transition-colors"
                           >
                             Assign
                           </button>
@@ -362,7 +364,7 @@ export const AssetsPage: React.FC = () => {
                               setSelectedAsset(asset);
                               setShowActionModal('transfer');
                             }}
-                            className="px-2.5 py-1 rounded bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30 transition-colors"
+                            className="px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/25 transition-colors"
                           >
                             Transfer
                           </button>
@@ -374,7 +376,7 @@ export const AssetsPage: React.FC = () => {
                               setSelectedAsset(asset);
                               setShowActionModal('revoke');
                             }}
-                            className="px-2.5 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-colors"
+                            className="px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/25 transition-colors"
                           >
                             Revoke
                           </button>
@@ -390,11 +392,11 @@ export const AssetsPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* CREATE MODAL */}

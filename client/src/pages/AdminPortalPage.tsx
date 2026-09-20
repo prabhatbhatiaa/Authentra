@@ -4,11 +4,12 @@ import {
   ShieldCheck,
   Key,
   UserPlus,
-  AlertCircle,
   Lock,
   Layers,
-  Sparkles,
 } from 'lucide-react';
+import { TableSkeleton } from '../components/LoadingSkeleton';
+import { EmptyState } from '../components/EmptyState';
+import { StatusAlert } from '../components/StatusAlert';
 import { adminClient } from '../services/admin.service';
 import {
   AdminUserItem,
@@ -106,9 +107,10 @@ export function AdminPortalPage() {
 
   if (loading) {
     return (
-      <div className="py-20 text-center space-y-3 font-mono text-xs text-slate-400">
-        <div className="w-8 h-8 mx-auto border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-        <p>Loading enterprise governance directory & RBAC matrix...</p>
+      <div className="space-y-6 max-w-6xl mx-auto w-full">
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <TableSkeleton rows={5} cols={5} />
+        </div>
       </div>
     );
   }
@@ -176,17 +178,22 @@ export function AdminPortalPage() {
 
       {/* Messages */}
       {error && (
-        <div className="p-3.5 rounded-lg bg-rose-950/40 border border-rose-900/60 text-rose-300 text-xs font-mono flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-          <span>{error}</span>
-        </div>
+        <StatusAlert
+          type="error"
+          title="Governance Error"
+          message={error}
+          onRetry={loadData}
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {successMsg && (
-        <div className="p-3.5 rounded-lg bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 text-xs font-mono flex items-start gap-2">
-          <Sparkles className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-          <span>{successMsg}</span>
-        </div>
+        <StatusAlert
+          type="success"
+          title="Action Completed"
+          message={successMsg}
+          onDismiss={() => setSuccessMsg(null)}
+        />
       )}
 
       {/* TAB 1: USERS DIRECTORY & ROLE ASSIGNMENTS */}
@@ -214,7 +221,18 @@ export function AdminPortalPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                  {users.map((u) => (
+                  {users.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8">
+                        <EmptyState
+                          icon={Users}
+                          title="No Users Registered"
+                          description="No user accounts currently exist in this organization directory."
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    users.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-950/40 transition-colors">
                       <td className="py-3.5 px-3">
                         <div className="font-semibold text-slate-100">{u.email}</div>
@@ -287,7 +305,8 @@ export function AdminPortalPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>

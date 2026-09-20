@@ -8,6 +8,9 @@ import {
   Shield,
   Terminal,
 } from 'lucide-react';
+import { TableSkeleton } from '../components/LoadingSkeleton';
+import { EmptyState } from '../components/EmptyState';
+import { StatusAlert } from '../components/StatusAlert';
 
 
 interface AuditEventItem {
@@ -150,28 +153,28 @@ export const AuditPage: React.FC = () => {
   const getActionBadge = (action: string) => {
     if (action.includes('REVOKE') || action.includes('DELETED')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-red-500/10 text-red-400 border border-red-500/30">
+        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/25">
           {action}
         </span>
       );
     }
     if (action.includes('MINT') || action.includes('CREATED') || action.includes('REGISTERED')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
           {action}
         </span>
       );
     }
     if (action.includes('ASSIGN') || action.includes('TRANSFER')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/30">
+        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/25">
           {action}
         </span>
       );
     }
     if (action.includes('LOGIN') || action.includes('LOGOUT')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30">
+        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
           {action}
         </span>
       );
@@ -277,40 +280,49 @@ export const AuditPage: React.FC = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
-          {error}
-        </div>
+        <StatusAlert
+          type="error"
+          title="Audit Trail Error"
+          message={error}
+          onRetry={() => fetchAuditLogs(pagination.page)}
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {/* Audit Log Table */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 bg-slate-900/80 font-mono text-xs text-slate-400">
-              <tr>
-                <th className="px-6 py-3.5 font-medium">TIMESTAMP</th>
-                <th className="px-6 py-3.5 font-medium">ACTION</th>
-                <th className="px-6 py-3.5 font-medium">ENTITY</th>
-                <th className="px-6 py-3.5 font-medium">ACTOR</th>
-                <th className="px-6 py-3.5 font-medium">ON-CHAIN HASH</th>
-                <th className="px-6 py-3.5 font-medium text-right">DETAILS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
-              {loading && events.length === 0 ? (
+        {loading && events.length === 0 ? (
+          <div className="p-6">
+            <TableSkeleton rows={5} cols={6} />
+          </div>
+        ) : events.length === 0 ? (
+          <div className="p-8">
+            <EmptyState
+              icon={Shield}
+              title="No Audit Records Found"
+              description="No logged security actions match the active query and filters. Reset filters to see full system history."
+              actionLabel="Reset Filters"
+              onAction={() => {
+                setSelectedAction('ALL');
+                setSelectedEntity('ALL');
+              }}
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-800 bg-slate-900/80 font-mono text-xs text-slate-400">
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 animate-pulse">
-                    Retrieving tamper-evident audit records...
-                  </td>
+                  <th className="px-6 py-3.5 font-medium">TIMESTAMP</th>
+                  <th className="px-6 py-3.5 font-medium">ACTION</th>
+                  <th className="px-6 py-3.5 font-medium">ENTITY</th>
+                  <th className="px-6 py-3.5 font-medium">ACTOR</th>
+                  <th className="px-6 py-3.5 font-medium">ON-CHAIN HASH</th>
+                  <th className="px-6 py-3.5 font-medium text-right">DETAILS</th>
                 </tr>
-              ) : events.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    No matching audit events found for current filters.
-                  </td>
-                </tr>
-              ) : (
-                events.map((event) => (
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                {events.map((event) => (
                   <tr key={event.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-3.5 text-slate-400 whitespace-nowrap">
                       {new Date(event.createdAt).toLocaleString()}
@@ -356,11 +368,11 @@ export const AuditPage: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination Bar */}
         <div className="p-4 border-t border-slate-800 flex items-center justify-between font-mono text-xs text-slate-400">

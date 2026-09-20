@@ -8,10 +8,10 @@ import {
   Copy,
   Check,
   Search,
-  AlertCircle,
-  Sparkles,
   Code2,
 } from 'lucide-react';
+import { DetailSkeleton } from '../components/LoadingSkeleton';
+import { StatusAlert } from '../components/StatusAlert';
 import { identityClient } from '../services/identity.service';
 import { DetailedIdentity, ResolveIdentityResponse } from '../types/identity.types';
 
@@ -97,27 +97,21 @@ export function IdentityPage() {
 
   if (loading) {
     return (
-      <div className="py-20 text-center space-y-3 font-mono text-xs text-slate-400">
-        <div className="w-8 h-8 mx-auto border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-        <p>Loading cryptographic identity & W3C DID document...</p>
+      <div className="space-y-6 max-w-6xl mx-auto w-full">
+        <DetailSkeleton />
       </div>
     );
   }
 
   if (error || !identity) {
     return (
-      <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-rose-950/30 border border-rose-900/60 text-rose-300 text-sm space-y-4">
-        <div className="flex items-center gap-2 font-semibold">
-          <AlertCircle className="w-5 h-5 text-rose-400" />
-          <span>Identity Resolution Error</span>
-        </div>
-        <p>{error || 'No identity is associated with this account.'}</p>
-        <button
-          onClick={fetchIdentity}
-          className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono text-slate-200"
-        >
-          Retry Connection
-        </button>
+      <div className="max-w-2xl mx-auto p-4">
+        <StatusAlert
+          type="error"
+          title="Identity Resolution Error"
+          message={error || 'No identity is associated with this account.'}
+          onRetry={fetchIdentity}
+        />
       </div>
     );
   }
@@ -138,8 +132,8 @@ export function IdentityPage() {
               <span
                 className={`text-xs font-mono px-2.5 py-0.5 rounded-full border ${
                   identity.verificationStatus === 'VERIFIED'
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                    : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
                 }`}
               >
                 ● {identity.verificationStatus}
@@ -171,10 +165,12 @@ export function IdentityPage() {
       </div>
 
       {actionSuccess && (
-        <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 text-xs font-mono flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <span>{actionSuccess}</span>
-        </div>
+        <StatusAlert
+          type="success"
+          title="Verification Status Updated"
+          message={actionSuccess}
+          onDismiss={() => setActionSuccess(null)}
+        />
       )}
 
       {/* Main Identity Specs Grid */}
@@ -294,7 +290,7 @@ export function IdentityPage() {
             <button
               type="submit"
               disabled={lookupLoading || !lookupDid.trim()}
-              className="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+              className="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
             >
               {lookupLoading ? 'Resolving on Ledger...' : 'Resolve DID Document'}
             </button>

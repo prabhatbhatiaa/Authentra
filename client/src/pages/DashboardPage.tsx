@@ -15,6 +15,9 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { UserProfile } from '../types/auth.types';
+import { CardSkeleton, TableSkeleton } from '../components/LoadingSkeleton';
+import { EmptyState } from '../components/EmptyState';
+import { StatusAlert } from '../components/StatusAlert';
 
 interface DashboardData {
   identity: {
@@ -108,7 +111,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
     }
     if (action.includes('ASSIGN') || action.includes('TRANSFER')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
+        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/20">
           {action}
         </span>
       );
@@ -208,13 +211,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
-          {error}
-        </div>
+        <StatusAlert
+          type="error"
+          title="Dashboard Error"
+          message={error}
+          onRetry={fetchMetrics}
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
+      {loading && !data ? (
+        <CardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
         {/* Total Assets */}
         <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-400">
@@ -286,6 +296,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
           </div>
         </div>
       </div>
+      )}
 
       {/* Two-Column Activity & Transactions Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -307,7 +318,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
           </div>
 
           <div className="space-y-2.5">
-            {data?.recentActivity && data.recentActivity.length > 0 ? (
+            {loading && !data ? (
+              <TableSkeleton rows={3} cols={2} />
+            ) : data?.recentActivity && data.recentActivity.length > 0 ? (
               data.recentActivity.map((act) => (
                 <div
                   key={act.id}
@@ -329,7 +342,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
                 </div>
               ))
             ) : (
-              <div className="py-8 text-center text-slate-500">No activity recorded yet.</div>
+              <EmptyState
+                icon={Activity}
+                title="No Audit Entries"
+                description="Lifecycle actions and cryptographic assignments will appear here."
+              />
             )}
           </div>
         </div>
@@ -347,7 +364,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
           </div>
 
           <div className="space-y-2.5">
-            {data?.recentTransactions && data.recentTransactions.length > 0 ? (
+            {loading && !data ? (
+              <TableSkeleton rows={3} cols={2} />
+            ) : data?.recentTransactions && data.recentTransactions.length > 0 ? (
               data.recentTransactions.map((tx) => (
                 <div
                   key={tx.txHash}
@@ -374,9 +393,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
                 </div>
               ))
             ) : (
-              <div className="py-8 text-center text-slate-500">
-                No on-chain transactions broadcasted yet.
-              </div>
+              <EmptyState
+                icon={Link}
+                title="No On-Chain Hashes"
+                description="Broadcasted Aptos transactions and verifiable digests will stream here."
+              />
             )}
           </div>
         </div>

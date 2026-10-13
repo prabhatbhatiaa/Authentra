@@ -1,17 +1,25 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Filter,
-  RefreshCw,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
+  Filter,
+  RefreshCw,
   Shield,
   Terminal,
+  UserRound,
+  Waypoints,
 } from 'lucide-react';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import { EmptyState } from '../components/EmptyState';
 import { StatusAlert } from '../components/StatusAlert';
-
+import { PageHeader } from '../components/ui/PageHeader';
+import { Modal } from '../components/ui/Modal';
+import { ActionBadge } from '../components/ui/Badge';
+import { JsonView } from '../components/ui/JsonView';
+import { CopyButton } from '../components/ui/CopyButton';
+import { formatDateTime, formatRelative, truncateMiddle } from '../lib/format';
+import { cn } from '../lib/cn';
 
 interface AuditEventItem {
   id: string;
@@ -96,7 +104,6 @@ export const AuditPage: React.FC = () => {
   };
 
   const fetchMetadata = async () => {
-
     try {
       const res = await fetch('/api/audit/metadata', {
         headers: { Authorization: `Bearer ${token}` },
@@ -111,35 +118,38 @@ export const AuditPage: React.FC = () => {
     }
   };
 
-  const fetchAuditLogs = useCallback(async (targetPage = 1) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const queryParams = new URLSearchParams({
-        page: String(targetPage),
-        limit: '15',
-      });
+  const fetchAuditLogs = useCallback(
+    async (targetPage = 1) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const queryParams = new URLSearchParams({
+          page: String(targetPage),
+          limit: '15',
+        });
 
-      if (selectedAction !== 'ALL') queryParams.append('action', selectedAction);
-      if (selectedEntity !== 'ALL') queryParams.append('entity', selectedEntity);
+        if (selectedAction !== 'ALL') queryParams.append('action', selectedAction);
+        if (selectedEntity !== 'ALL') queryParams.append('entity', selectedEntity);
 
-      const res = await fetch(`/api/audit?${queryParams.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
+        const res = await fetch(`/api/audit?${queryParams.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
 
-      if (data.success && data.data) {
-        setEvents(data.data.events);
-        setPagination(data.data.pagination);
-      } else {
-        setError(data.error?.message || 'Failed to retrieve audit records.');
+        if (data.success && data.data) {
+          setEvents(data.data.events);
+          setPagination(data.data.pagination);
+        } else {
+          setError(data.error?.message || 'Failed to retrieve audit records.');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Network error fetching audit trail.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error fetching audit trail.');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, selectedAction, selectedEntity]);
+    },
+    [token, selectedAction, selectedEntity]
+  );
 
   useEffect(() => {
     fetchMetadata();
@@ -149,159 +159,118 @@ export const AuditPage: React.FC = () => {
     fetchAuditLogs(1);
   }, [fetchAuditLogs]);
 
-  // Color-coded badge helper for action types
-  const getActionBadge = (action: string) => {
-    if (action.includes('REVOKE') || action.includes('DELETED')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/25">
-          {action}
-        </span>
-      );
-    }
-    if (action.includes('MINT') || action.includes('CREATED') || action.includes('REGISTERED')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
-          {action}
-        </span>
-      );
-    }
-    if (action.includes('ASSIGN') || action.includes('TRANSFER')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/25">
-          {action}
-        </span>
-      );
-    }
-    if (action.includes('LOGIN') || action.includes('LOGOUT')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
-          {action}
-        </span>
-      );
-    }
-    return (
-      <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
-        {action}
-      </span>
-    );
-  };
+  const filtersActive = selectedAction !== 'ALL' || selectedEntity !== 'ALL';
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto w-full text-left">
-      {/* Top Header Card */}
-      <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-2">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Task 12: Immutable Event Audit Trail</span>
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">System Audit Explorer</h2>
-          <p className="text-slate-400 text-sm mt-1">
-            Tamper-evident chronological journal capturing user actions, state transitions, and on-chain transactions.
-          </p>
-        </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Append-only journal"
+        title="Audit log"
+        description="A tamper-evident chronological journal of actor identities, role transitions, custody intervals and Aptos Move executions."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => fetchAuditLogs(pagination.page)}
+              className="btn-icon h-10 w-10"
+              title="Refresh audit log"
+              aria-label="Refresh audit log"
+            >
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            </button>
+            <button
+              type="button"
+              onClick={handleSyncBlockchain}
+              disabled={syncing}
+              className="btn-primary"
+              title="Index on-chain Aptos events into PostgreSQL"
+            >
+              <Waypoints className={cn('h-4 w-4', syncing && 'animate-pulse')} />
+              {syncing ? 'Syncing…' : 'Sync Aptos events'}
+            </button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={handleSyncBlockchain}
-            disabled={syncing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold transition-colors disabled:opacity-50"
-            title="Index on-chain Aptos events into PostgreSQL"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-            <span>{syncing ? 'Syncing...' : 'Sync Aptos Events'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => fetchAuditLogs(pagination.page)}
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors"
-            title="Refresh audit log"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* Sync Notice Banner */}
       {syncNotice && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center justify-between">
-          <span>{syncNotice}</span>
-          <button onClick={() => setSyncNotice(null)} className="text-slate-400 hover:text-slate-200 ml-4">✕</button>
-        </div>
+        <StatusAlert type="info" title="Indexer" message={syncNotice} onDismiss={() => setSyncNotice(null)} />
       )}
 
-
-      {/* Filter Controls */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap items-center gap-4 text-xs font-mono">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Filter className="w-4 h-4 text-emerald-400" />
-          <span>FILTERS:</span>
+      {/* ── Filters ─────────────────────────────────────────────── */}
+      <div className="card flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <span className="flex items-center gap-2 text-sm font-medium text-fg">
+            <Filter className="h-4 w-4 text-fg-subtle" /> Filter
+          </span>
+          <div className="grid grid-cols-2 gap-2.5 sm:flex">
+            <select
+              value={selectedAction}
+              onChange={(e) => setSelectedAction(e.target.value)}
+              className="input py-2 text-xs sm:w-52"
+              aria-label="Filter by action"
+            >
+              <option value="ALL">All actions</option>
+              {actionsList.map((act) => (
+                <option key={act} value={act}>
+                  {act}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedEntity}
+              onChange={(e) => setSelectedEntity(e.target.value)}
+              className="input py-2 text-xs sm:w-44"
+              aria-label="Filter by entity"
+            >
+              <option value="ALL">All entities</option>
+              {entitiesList.map((ent) => (
+                <option key={ent} value={ent}>
+                  {ent}
+                </option>
+              ))}
+            </select>
+          </div>
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAction('ALL');
+                setSelectedEntity('ALL');
+              }}
+              className="btn-ghost btn-sm self-start sm:self-auto"
+            >
+              Clear
+            </button>
+          )}
         </div>
-
-        {/* Action Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-slate-500">Action:</label>
-          <select
-            value={selectedAction}
-            onChange={(e) => setSelectedAction(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-emerald-500/60"
-          >
-            <option value="ALL">ALL ACTIONS</option>
-            {actionsList.map((act) => (
-              <option key={act} value={act}>
-                {act}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Entity Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-slate-500">Entity:</label>
-          <select
-            value={selectedEntity}
-            onChange={(e) => setSelectedEntity(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-emerald-500/60"
-          >
-            <option value="ALL">ALL ENTITIES</option>
-            {entitiesList.map((ent) => (
-              <option key={ent} value={ent}>
-                {ent}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="ml-auto text-slate-500">
-          Total Recorded Events: <span className="text-emerald-400 font-semibold">{pagination.total}</span>
+        <div className="text-sm text-fg-subtle">
+          <span className="font-serif text-2xl text-fg tabular">{pagination.total.toLocaleString()}</span> events
         </div>
       </div>
 
-      {/* Error Banner */}
       {error && (
         <StatusAlert
           type="error"
-          title="Audit Trail Error"
+          title="Audit trail alert"
           message={error}
           onRetry={() => fetchAuditLogs(pagination.page)}
           onDismiss={() => setError(null)}
         />
       )}
 
-      {/* Audit Log Table */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-sm">
+      {/* ── Ledger ──────────────────────────────────────────────── */}
+      <section className="card overflow-hidden rounded-xl">
         {loading && events.length === 0 ? (
           <div className="p-6">
-            <TableSkeleton rows={5} cols={6} />
+            <TableSkeleton rows={6} cols={6} />
           </div>
         ) : events.length === 0 ? (
-          <div className="p-8">
+          <div className="p-4 sm:p-6">
             <EmptyState
               icon={Shield}
-              title="No Audit Records Found"
-              description="No logged security actions match the active query and filters. Reset filters to see full system history."
-              actionLabel="Reset Filters"
+              title="No audit records found"
+              description="No logged security actions match the active filters. Reset them to see the full history."
+              actionLabel="Reset filters"
               onAction={() => {
                 setSelectedAction('ALL');
                 setSelectedEntity('ALL');
@@ -309,186 +278,226 @@ export const AuditPage: React.FC = () => {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-800 bg-slate-900/80 font-mono text-xs text-slate-400">
-                <tr>
-                  <th className="px-6 py-3.5 font-medium">TIMESTAMP</th>
-                  <th className="px-6 py-3.5 font-medium">ACTION</th>
-                  <th className="px-6 py-3.5 font-medium">ENTITY</th>
-                  <th className="px-6 py-3.5 font-medium">ACTOR</th>
-                  <th className="px-6 py-3.5 font-medium">ON-CHAIN HASH</th>
-                  <th className="px-6 py-3.5 font-medium text-right">DETAILS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
-                {events.map((event) => (
-                  <tr key={event.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-3.5 text-slate-400 whitespace-nowrap">
-                      {new Date(event.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-3.5">{getActionBadge(event.action)}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                        {event.entity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      {event.actor ? (
-                        <div>
-                          <div className="text-slate-200 font-sans">{event.actor.name}</div>
-                          <div className="text-[10px] text-slate-500">{event.actor.email}</div>
-                        </div>
-                      ) : (
-                        <span className="text-slate-600">SYSTEM / INTERNAL</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5">
-                      {event.transaction ? (
-                        <a
-                          href={`https://explorer.aptoslabs.com/txn/${event.transaction.txHash}?network=testnet`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-emerald-400 hover:underline inline-flex items-center gap-1"
-                        >
-                          <span>{event.transaction.txHash.slice(0, 10)}...</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        <span className="text-slate-600">N/A</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedEvent(event)}
-                        className="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-colors"
-                      >
-                        Inspect
-                      </button>
-                    </td>
+          <div className={cn('transition-opacity duration-300', loading && 'opacity-50')}>
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Actor</th>
+                    <th>On-chain</th>
+                    <th className="text-right" aria-label="Details" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {events.map((event) => (
+                    <tr key={event.id} className="cursor-pointer" onClick={() => setSelectedEvent(event)}>
+                      <td className="whitespace-nowrap">
+                        <div className="text-sm text-fg">{formatRelative(event.createdAt)}</div>
+                        <div className="font-mono text-[10.5px] text-fg-subtle">{formatDateTime(event.createdAt)}</div>
+                      </td>
+                      <td>
+                        <ActionBadge action={event.action} />
+                      </td>
+                      <td>
+                        <span className="font-mono text-[11px] text-fg-muted">{event.entity}</span>
+                      </td>
+                      <td>
+                        {event.actor ? (
+                          <div className="min-w-0">
+                            <div className="text-sm text-fg">{event.actor.name}</div>
+                            <div className="text-[11px] text-fg-subtle">{event.actor.email}</div>
+                          </div>
+                        ) : (
+                          <span className="text-xs italic text-fg-subtle">System</span>
+                        )}
+                      </td>
+                      <td>
+                        {event.transaction ? (
+                          <a
+                            href={`https://explorer.aptoslabs.com/txn/${event.transaction.txHash}?network=testnet`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="link inline-flex items-center gap-1 font-mono text-[12px] text-fg"
+                          >
+                            {truncateMiddle(event.transaction.txHash, 8, 4)}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-xs text-fg-subtle">—</span>
+                        )}
+                      </td>
+                      <td className="text-right">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEvent(event);
+                          }}
+                          className="btn-secondary btn-sm"
+                        >
+                          Inspect
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile list */}
+            <ul className="divide-y divide-line/[0.06] md:hidden">
+              {events.map((event) => (
+                <li key={event.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEvent(event)}
+                    className="w-full space-y-2.5 p-4 text-left transition-colors active:bg-fg/[0.03]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <ActionBadge action={event.action} />
+                      <span className="text-[11px] text-fg-subtle">{formatRelative(event.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-mono text-xs text-fg">{event.entity}</span>
+                      <span className="min-w-0 truncate text-xs text-fg-subtle">{event.actor?.email || 'System'}</span>
+                    </div>
+                    <div className="font-mono text-[10.5px] text-fg-subtle">
+                      {event.transaction ? (
+                        <span className="text-fg">Tx {truncateMiddle(event.transaction.txHash, 10, 4)}</span>
+                      ) : (
+                        'Off-chain entry'
+                      )}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
-        {/* Pagination Bar */}
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between font-mono text-xs text-slate-400">
-          <div>
-            Page {pagination.page} of {pagination.totalPages || 1}
-          </div>
-          <div className="flex items-center gap-2">
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t border-line/[0.06] px-5 py-3.5 text-xs text-fg-subtle">
+          <span>
+            Page <span className="text-fg tabular">{pagination.page}</span> of {pagination.totalPages || 1}
+          </span>
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={pagination.page <= 1 || loading}
               onClick={() => fetchAuditLogs(pagination.page - 1)}
-              className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300"
+              className="btn-icon h-8 w-8"
+              aria-label="Previous page"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
               disabled={pagination.page >= pagination.totalPages || loading}
               onClick={() => fetchAuditLogs(pagination.page + 1)}
-              className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300"
+              className="btn-icon h-8 w-8"
+              aria-label="Next page"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* INSPECT EVENT MODAL */}
-      {selectedEvent && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 max-h-[85vh] flex flex-col font-mono text-xs">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                <Terminal className="w-4 h-4" />
-                <span>AUDIT RECORD #{selectedEvent.id.slice(0, 8)}</span>
+      {/* ── Inspect record ──────────────────────────────────────── */}
+      <Modal
+        open={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        icon={Terminal}
+        title="Audit record"
+        description={selectedEvent ? <span className="font-mono text-xs">#{selectedEvent.id.slice(0, 8)}</span> : undefined}
+        footer={
+          <button type="button" onClick={() => setSelectedEvent(null)} className="btn-secondary">
+            Close
+          </button>
+        }
+      >
+        {selectedEvent && (
+          <div className="space-y-5">
+            <dl className="-my-2.5">
+              <div className="kv">
+                <dt>Timestamp</dt>
+                <dd className="font-mono text-xs">{new Date(selectedEvent.createdAt).toISOString()}</dd>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedEvent(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 overflow-y-auto pr-1">
-              <div>
-                <span className="text-slate-500 block mb-0.5">TIMESTAMP</span>
-                <span className="text-white">{new Date(selectedEvent.createdAt).toISOString()}</span>
+              <div className="kv">
+                <dt>Action</dt>
+                <dd>
+                  <ActionBadge action={selectedEvent.action} />
+                </dd>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-slate-500 block mb-0.5">ACTION</span>
-                  <div>{getActionBadge(selectedEvent.action)}</div>
-                </div>
-                <div>
-                  <span className="text-slate-500 block mb-0.5">ENTITY</span>
-                  <span className="text-white">{selectedEvent.entity}</span>
-                </div>
+              <div className="kv">
+                <dt>Entity</dt>
+                <dd className="font-mono text-xs">{selectedEvent.entity}</dd>
               </div>
-
               {selectedEvent.entityId && (
-                <div>
-                  <span className="text-slate-500 block mb-0.5">ENTITY ID</span>
-                  <span className="text-slate-300 break-all">{selectedEvent.entityId}</span>
+                <div className="kv">
+                  <dt>Entity ID</dt>
+                  <dd className="flex items-center justify-end gap-1 font-mono text-xs text-fg-muted">
+                    {truncateMiddle(selectedEvent.entityId, 10, 6)}
+                    <CopyButton value={selectedEvent.entityId} size="sm" />
+                  </dd>
                 </div>
               )}
+            </dl>
 
-              {selectedEvent.actor && (
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                  <span className="text-slate-500 block text-[11px]">ACTOR DETAILS</span>
-                  <div className="text-white font-sans">{selectedEvent.actor.name}</div>
-                  <div className="text-slate-400">{selectedEvent.actor.email}</div>
-                  {selectedEvent.actor.did && (
-                    <div className="text-[10px] text-slate-500 break-all">{selectedEvent.actor.did}</div>
-                  )}
+            {selectedEvent.actor && (
+              <div className="well space-y-1 p-4">
+                <div className="meta mb-2 flex items-center gap-1.5">
+                  <UserRound className="h-3 w-3" /> Actor
                 </div>
-              )}
+                <div className="text-sm font-medium text-fg">{selectedEvent.actor.name}</div>
+                <div className="text-xs text-fg-muted">{selectedEvent.actor.email}</div>
+                {selectedEvent.actor.did && (
+                  <div className="break-all pt-1 font-mono text-[10.5px] text-fg-subtle">{selectedEvent.actor.did}</div>
+                )}
+              </div>
+            )}
 
-              {selectedEvent.transaction && (
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                  <span className="text-slate-500 block text-[11px]">APTOS ON-CHAIN TRANSACTION</span>
-                  <div className="text-emerald-400 break-all">{selectedEvent.transaction.txHash}</div>
-                  <div className="text-slate-400">Type: {selectedEvent.transaction.txType}</div>
+            {selectedEvent.transaction && (
+              <div className="well space-y-1.5 p-4">
+                <div className="meta mb-2 flex items-center gap-1.5">
+                  <Waypoints className="h-3 w-3" /> Aptos transaction
                 </div>
-              )}
-
-              {selectedEvent.metadata && (
-                <div>
-                  <span className="text-slate-500 block mb-1">EVENT METADATA (JSON)</span>
-                  <pre className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400/90 text-[11px] overflow-x-auto">
-                    {JSON.stringify(selectedEvent.metadata, null, 2)}
-                  </pre>
+                <div className="break-all font-mono text-xs text-fg">{selectedEvent.transaction.txHash}</div>
+                <div className="flex items-center justify-between text-xs text-fg-muted">
+                  <span>Type · {selectedEvent.transaction.txType}</span>
+                  <a
+                    href={`https://explorer.aptoslabs.com/txn/${selectedEvent.transaction.txHash}?network=testnet`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="link inline-flex items-center gap-1 text-fg"
+                  >
+                    Explorer <ExternalLink className="h-3 w-3" />
+                  </a>
                 </div>
-              )}
+              </div>
+            )}
 
-              {(selectedEvent.ipAddress || selectedEvent.userAgent) && (
-                <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-500">
-                  {selectedEvent.ipAddress && <div>IP: {selectedEvent.ipAddress}</div>}
-                  {selectedEvent.userAgent && <div className="truncate">Client: {selectedEvent.userAgent}</div>}
-                </div>
-              )}
-            </div>
+            {selectedEvent.metadata && (
+              <div>
+                <div className="meta mb-2">Event metadata</div>
+                <JsonView value={selectedEvent.metadata} className="max-h-64" />
+              </div>
+            )}
 
-            <div className="pt-3 border-t border-slate-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedEvent(null)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-              >
-                Close
-              </button>
-            </div>
+            {(selectedEvent.ipAddress || selectedEvent.userAgent) && (
+              <div className="space-y-1 border-t border-line/[0.06] pt-4 font-mono text-[11px] text-fg-subtle">
+                {selectedEvent.ipAddress && <div>IP · {selectedEvent.ipAddress}</div>}
+                {selectedEvent.userAgent && <div className="truncate">Client · {selectedEvent.userAgent}</div>}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

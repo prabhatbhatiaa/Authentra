@@ -1,24 +1,42 @@
-import { useEffect, useState } from 'react';
-import {
-  Users,
-  ShieldCheck,
-  Key,
-  UserPlus,
-  Lock,
-  Layers,
-} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Key, Layers, Lock, UserPlus, Users, X } from 'lucide-react';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import { EmptyState } from '../components/EmptyState';
 import { StatusAlert } from '../components/StatusAlert';
 import { adminClient } from '../services/admin.service';
-import {
-  AdminUserItem,
-  AdminRoleItem,
-  AdminPermissionsResponse,
-} from '../types/admin.types';
+import { AdminUserItem, AdminRoleItem, AdminPermissionsResponse } from '../types/admin.types';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Modal } from '../components/ui/Modal';
+import { Badge } from '../components/ui/Badge';
+import { truncateMiddle } from '../lib/format';
+import { cn } from '../lib/cn';
+
+type AdminTab = 'users' | 'roles' | 'permissions';
+
+function userInitials(u: AdminUserItem) {
+  return `${u.firstName?.[0] ?? u.email[0]}${u.lastName?.[0] ?? ''}`.toUpperCase();
+}
+
+function RoleChip({ name, onRevoke }: { name: string; onRevoke: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 h-6 rounded-md border border-line/10 pl-2 pr-0.5 font-mono text-[11px] text-fg">
+      {name}
+      <button
+        type="button"
+        onClick={onRevoke}
+        className="flex h-4 w-4 items-center justify-center rounded-full transition-colors hover:bg-bad/20 hover:text-bad"
+        title={`Revoke ${name}`}
+        aria-label={`Revoke ${name}`}
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
+  );
+}
 
 export function AdminPortalPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'permissions'>('users');
+  const [activeTab, setActiveTab] = useState<AdminTab>('users');
 
   const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [roles, setRoles] = useState<AdminRoleItem[]>([]);
@@ -28,7 +46,7 @@ export function AdminPortalPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Role Assignment Modal / Selection state
+  // Role assignment modal state
   const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [assignLoading, setAssignLoading] = useState<boolean>(false);
@@ -105,82 +123,76 @@ export function AdminPortalPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6 max-w-6xl mx-auto w-full">
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-          <TableSkeleton rows={5} cols={5} />
-        </div>
-      </div>
-    );
-  }
+  const openAssign = (u: AdminUserItem) => {
+    setSelectedUser(u);
+    setSelectedRoleId('');
+  };
+
+  const stats = useMemo(
+    () => [
+      { label: 'Users', value: users.length },
+      { label: 'Active', value: users.filter((u) => u.status === 'ACTIVE').length },
+      { label: 'Suspended', value: users.filter((u) => u.status !== 'ACTIVE').length },
+      { label: 'Verified DIDs', value: users.filter((u) => u.identity?.verificationStatus === 'VERIFIED').length },
+    ],
+    [users]
+  );
+
+  const tabs: Array<{ id: AdminTab; label: string; count: number; icon: typeof Users }> = [
+    { id: 'users', label: 'Users', count: users.length, icon: Users },
+    { id: 'roles', label: 'Roles', count: roles.length, icon: Key },
+    { id: 'permissions', label: 'Permissions', count: permissionsData?.total || 0, icon: Lock },
+  ];
+
+  const assignableRoles = selectedUser
+    ? roles.filter((r) => !selectedUser.roles.some((ur) => ur.id === r.id))
+    : [];
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800/90 shadow-xl">
-        <div className="flex items-start gap-4">
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <ShieldCheck className="w-8 h-8" />
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Server-enforced RBAC"
+        title="Access control"
+        description="Manage enterprise identities, fine-grained role assignments and the permission map every API request is checked against."
+        meta={<Badge>Admin console</Badge>}
+        actions={
+          <div className="relative flex rounded-lg border border-line/10 p-0.5" role="tablist">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const active = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveTab(t.id)}
+                  className={cn(
+                    'relative flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] transition-colors duration-150',
+                    active ? 'text-canvas' : 'text-fg-muted hover:text-fg'
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="admin-tab"
+                      className="absolute inset-0 rounded-md bg-fg"
+                      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                  )}
+                  <Icon className="relative h-3.5 w-3.5" />
+                  <span className="relative">{t.label}</span>
+                  <span className={cn('relative tabular', active ? 'text-canvas/60' : 'text-fg-subtle')}>{t.count}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Governance & RBAC Management
-              </h1>
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                ADMIN CONSOLE
-              </span>
-            </div>
-            <p className="text-slate-400 text-xs sm:text-sm">
-              Manage enterprise identities, fine-grained role assignments, and server-enforced permission maps.
-            </p>
-          </div>
-        </div>
+        }
+      />
 
-        {/* Sub-navigation Tabs */}
-        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 font-mono text-xs">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-              activeTab === 'users'
-                ? 'bg-slate-800 text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>USERS ({users.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('roles')}
-            className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-              activeTab === 'roles'
-                ? 'bg-slate-800 text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span>ROLES ({roles.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('permissions')}
-            className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-              activeTab === 'permissions'
-                ? 'bg-slate-800 text-emerald-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>PERMISSIONS ({permissionsData?.total || 0})</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Messages */}
       {error && (
         <StatusAlert
           type="error"
-          title="Governance Error"
+          title="Governance error"
           message={error}
           onRetry={loadData}
           onDismiss={() => setError(null)}
@@ -188,251 +200,319 @@ export function AdminPortalPage() {
       )}
 
       {successMsg && (
-        <StatusAlert
-          type="success"
-          title="Action Completed"
-          message={successMsg}
-          onDismiss={() => setSuccessMsg(null)}
-        />
+        <StatusAlert type="success" title="Action completed" message={successMsg} onDismiss={() => setSuccessMsg(null)} />
       )}
 
-      {/* TAB 1: USERS DIRECTORY & ROLE ASSIGNMENTS */}
-      {activeTab === 'users' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-400" /> Enterprise User Directory (/admin/users)
-              </span>
-              <span className="text-[11px] font-mono text-slate-500">
-                Self-privilege modification is strictly blocked by server policy
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
-                    <th className="py-3 px-3">USER / EMAIL</th>
-                    <th className="py-3 px-3">DID / WALLET</th>
-                    <th className="py-3 px-3">ASSIGNED ROLES</th>
-                    <th className="py-3 px-3">STATUS</th>
-                    <th className="py-3 px-3 text-right">ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                  {users.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8">
-                        <EmptyState
-                          icon={Users}
-                          title="No Users Registered"
-                          description="No user accounts currently exist in this organization directory."
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    users.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-950/40 transition-colors">
-                      <td className="py-3.5 px-3">
-                        <div className="font-semibold text-slate-100">{u.email}</div>
-                        <div className="text-[10px] text-slate-500">
-                          {u.firstName ? `${u.firstName} ${u.lastName || ''}` : 'No Name'}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        {u.identity ? (
-                          <div>
-                            <div className="text-emerald-400 text-[11px] break-all">
-                              {u.identity.did.substring(0, 22)}...
-                            </div>
-                            <div className="text-slate-500 text-[10px]">
-                              {u.identity.walletAddress.substring(0, 14)}...
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-slate-600">No Identity</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                          {u.roles.map((r) => (
-                            <span
-                              key={r.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold"
-                            >
-                              <span>{r.name}</span>
-                              <button
-                                onClick={() => handleRevokeRole(u.id, r.id)}
-                                className="hover:text-rose-400 ml-0.5 text-xs"
-                                title={`Revoke ${r.name}`}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] border ${
-                            u.status === 'ACTIVE'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                          }`}
-                        >
-                          ● {u.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedUser(u);
-                              setSelectedRoleId('');
-                            }}
-                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[10px] border border-slate-700 flex items-center gap-1"
-                          >
-                            <UserPlus className="w-3 h-3" />
-                            <span>Assign Role</span>
-                          </button>
-                          <button
-                            onClick={() => handleToggleUserStatus(u)}
-                            className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-[10px] border border-slate-800"
-                          >
-                            {u.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Role Assignment Modal Dialog */}
-          {selectedUser && (
-            <div className="p-6 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4" /> Assign Role to {selectedUser.email}
-                </span>
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="text-slate-400 hover:text-slate-200 text-sm font-mono"
-                >
-                  ✕ Close
-                </button>
-              </div>
-
-              <form onSubmit={handleAssignRole} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-mono text-slate-400 mb-1">SELECT ROLE TO GRANT</label>
-                  <select
-                    value={selectedRoleId}
-                    onChange={(e) => setSelectedRoleId(e.target.value)}
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="">-- Choose a Role --</option>
-                    {roles
-                      .filter((r) => !selectedUser.roles.some((ur) => ur.id === r.id))
-                      .map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name} — {r.description || 'System Role'} ({r.permissions.length} permissions)
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedUser(null)}
-                    className="px-4 py-2 rounded-lg bg-slate-800 text-xs font-mono text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={assignLoading || !selectedRoleId}
-                    className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs font-mono disabled:opacity-50"
-                  >
-                    {assignLoading ? 'Assigning...' : 'Grant Role'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+      {loading ? (
+        <div className="card rounded-xl p-6">
+          <TableSkeleton rows={5} cols={5} />
         </div>
-      )}
-
-      {/* TAB 2: ROLES & PERMISSION BUNDLES */}
-      {activeTab === 'roles' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {roles.map((r) => (
-            <div key={r.id} className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono font-bold text-white">{r.name}</span>
-                  {r.isSystem && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                      SYSTEM
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs font-mono text-emerald-400">
-                  {r.userCount} active users
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-400">{r.description || 'No description provided.'}</p>
-
-              <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                <div className="text-[11px] font-mono text-slate-400">
-                  GRANTED PERMISSIONS ({r.permissions.length}):
-                </div>
-                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
-                  {r.permissions.map((p) => (
-                    <span
-                      key={p.id}
-                      className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[10px]"
-                    >
-                      {p.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* TAB 3: CATEGORIZED PERMISSIONS MATRIX */}
-      {activeTab === 'permissions' && permissionsData && (
-        <div className="space-y-6">
-          {Object.entries(permissionsData.byCategory).map(([category, perms]) => (
-            <div key={category} className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                  <Layers className="w-4 h-4" /> {category} PERMISSIONS ({perms.length})
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {perms.map((p) => (
-                  <div key={p.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1">
-                    <div className="font-mono text-xs font-semibold text-slate-200">{p.name}</div>
-                    <div className="text-[11px] text-slate-400">{p.description || 'System permission'}</div>
+      ) : (
+        <>
+          {/* ── Users ─────────────────────────────────────────── */}
+          {activeTab === 'users' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {stats.map((s) => (
+                  <div key={s.label}>
+                    <div className="card rounded-xl p-5">
+                      <div className="text-xs text-fg-subtle">{s.label}</div>
+                      <div className="mt-3 font-serif text-4xl leading-none text-fg tabular">{s.value}</div>
+                    </div>
                   </div>
                 ))}
               </div>
+
+              <section className="card overflow-hidden rounded-xl">
+                <div className="flex flex-col gap-1 border-b border-line/[0.06] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <h2 className="text-sm font-semibold text-fg">User directory</h2>
+                  <span className="text-xs text-fg-subtle">Self-privilege modification is blocked by server policy</span>
+                </div>
+
+                {users.length === 0 ? (
+                  <div className="p-4 sm:p-6">
+                    <EmptyState
+                      icon={Users}
+                      title="No users registered"
+                      description="No user accounts currently exist in this organization directory."
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {/* Desktop */}
+                    <div className="hidden overflow-x-auto md:block">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>User</th>
+                            <th>Identity</th>
+                            <th>Roles</th>
+                            <th>Status</th>
+                            <th className="text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {users.map((u) => (
+                            <tr key={u.id}>
+                              <td>
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-fg/[0.08] text-xs font-semibold text-fg">
+                                    {userInitials(u)}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm font-medium text-fg">
+                                      {u.firstName ? `${u.firstName} ${u.lastName || ''}` : 'No name set'}
+                                    </div>
+                                    <div className="truncate text-xs text-fg-subtle">{u.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                {u.identity ? (
+                                  <div className="font-mono text-[11px]">
+                                    <div className="text-fg">{truncateMiddle(u.identity.did, 18, 4)}</div>
+                                    <div className="text-fg-subtle">{truncateMiddle(u.identity.walletAddress, 8, 4)}</div>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-fg-subtle">No identity</span>
+                                )}
+                              </td>
+                              <td>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {u.roles.length === 0 ? (
+                                    <span className="text-xs text-fg-subtle">None</span>
+                                  ) : (
+                                    u.roles.map((r) => (
+                                      <RoleChip key={r.id} name={r.name} onRevoke={() => handleRevokeRole(u.id, r.id)} />
+                                    ))
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <Badge tone={u.status === 'ACTIVE' ? 'ok' : 'bad'} dot>
+                                  {u.status}
+                                </Badge>
+                              </td>
+                              <td>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button type="button" onClick={() => openAssign(u)} className="btn-secondary btn-sm">
+                                    <UserPlus className="h-3.5 w-3.5" /> Assign
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleUserStatus(u)}
+                                    className={cn(
+                                      'btn btn-sm',
+                                      u.status === 'ACTIVE'
+                                        ? 'text-fg-muted hover:bg-bad/10 hover:text-bad'
+                                        : 'text-ok hover:bg-ok/10'
+                                    )}
+                                  >
+                                    {u.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile */}
+                    <ul className="divide-y divide-line/[0.06] md:hidden">
+                      {users.map((u) => (
+                        <li key={u.id} className="space-y-3.5 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-fg/[0.08] text-xs font-semibold text-fg">
+                                {userInitials(u)}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium text-fg">
+                                  {u.firstName ? `${u.firstName} ${u.lastName || ''}` : 'No name set'}
+                                </div>
+                                <div className="truncate text-xs text-fg-subtle">{u.email}</div>
+                              </div>
+                            </div>
+                            <Badge tone={u.status === 'ACTIVE' ? 'ok' : 'bad'} dot>
+                              {u.status}
+                            </Badge>
+                          </div>
+
+                          {u.identity && (
+                            <div className="well space-y-1 p-3 font-mono text-[10.5px]">
+                              <div className="break-all text-fg">{u.identity.did}</div>
+                              <div className="break-all text-fg-subtle">{u.identity.walletAddress}</div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-1.5">
+                            {u.roles.length === 0 ? (
+                              <span className="text-xs text-fg-subtle">No roles assigned</span>
+                            ) : (
+                              u.roles.map((r) => (
+                                <RoleChip key={r.id} name={r.name} onRevoke={() => handleRevokeRole(u.id, r.id)} />
+                              ))
+                            )}
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => openAssign(u)} className="btn-secondary btn-sm flex-1">
+                              <UserPlus className="h-3.5 w-3.5" /> Assign role
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleUserStatus(u)}
+                              className={cn(
+                                'btn btn-sm flex-1 border border-line/10',
+                                u.status === 'ACTIVE' ? 'text-bad' : 'text-ok'
+                              )}
+                            >
+                              {u.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </section>
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* ── Roles ─────────────────────────────────────────── */}
+          {activeTab === 'roles' && (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {roles.map((r) => (
+                <div key={r.id}>
+                  <div className="card card-hover rounded-xl">
+                    <div className="flex h-full flex-col gap-5 p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-serif text-3xl leading-none text-fg">
+                              {r.name.charAt(0) + r.name.slice(1).toLowerCase()}
+                            </h3>
+                            {r.isSystem && <Badge>System</Badge>}
+                          </div>
+                          <p className="text-sm text-fg-muted">{r.description || 'No description provided.'}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="font-serif text-3xl leading-none text-fg tabular">{r.userCount}</div>
+                          <div className="text-[11px] text-fg-subtle">users</div>
+                        </div>
+                      </div>
+                      <div className="space-y-2.5 border-t border-line/[0.06] pt-4">
+                        <div className="meta">Granted permissions · {r.permissions.length}</div>
+                        <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
+                          {r.permissions.map((p) => (
+                            <span
+                              key={p.id}
+                              className="rounded-md border border-line/10 px-2 py-0.5 font-mono text-[11px] text-fg-muted"
+                            >
+                              {p.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Permissions ───────────────────────────────────── */}
+          {activeTab === 'permissions' && permissionsData && (
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              {Object.entries(permissionsData.byCategory).map(([category, perms]) => (
+                <div key={category}>
+                  <section className="card h-full overflow-hidden rounded-xl">
+                    <div className="flex items-center justify-between border-b border-line/[0.06] px-5 py-4">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-fg">
+                        <Layers className="h-4 w-4 text-fg-subtle" />
+                        {category.charAt(0) + category.slice(1).toLowerCase()}
+                      </span>
+                      <Badge>{perms.length}</Badge>
+                    </div>
+                    <ul className="divide-y divide-line/[0.05]">
+                      {perms.map((p) => (
+                        <li key={p.id} className="flex items-start gap-3 px-5 py-3.5">
+                          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-fg-subtle" />
+                          <div className="min-w-0">
+                            <div className="font-mono text-xs font-medium text-fg">{p.name}</div>
+                            <div className="text-xs text-fg-muted">{p.description || 'System permission'}</div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
+
+      {/* ── Assign role ─────────────────────────────────────────── */}
+      <Modal
+        open={!!selectedUser}
+        onClose={() => setSelectedUser(null)}
+        icon={UserPlus}
+        title="Assign role"
+        description={selectedUser ? `Grant an additional role to ${selectedUser.email}.` : undefined}
+      >
+        <form onSubmit={handleAssignRole} className="space-y-4">
+          {assignableRoles.length === 0 ? (
+            <p className="well p-4 text-sm text-fg-muted">This user already holds every available role.</p>
+          ) : (
+            <div className="space-y-2" role="radiogroup" aria-label="Role to grant">
+              {assignableRoles.map((r) => {
+                const active = selectedRoleId === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setSelectedRoleId(r.id)}
+                    className={cn(
+                      'flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-all duration-300',
+                      active
+                        ? 'border-fg/40 bg-fg/[0.04]'
+                        : 'border-line/10 bg-fg/[0.02] hover:border-line/20'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                        active ? 'border-fg' : 'border-line/25'
+                      )}
+                    >
+                      {active && <span className="h-2 w-2 rounded-full bg-fg" />}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-fg">{r.name}</div>
+                      <div className="text-xs text-fg-muted">
+                        {r.description || 'System role'} · {r.permissions.length} permissions
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse gap-2.5 pt-2 sm:flex-row sm:justify-end">
+            <button type="button" onClick={() => setSelectedUser(null)} className="btn-ghost">
+              Cancel
+            </button>
+            <button type="submit" disabled={assignLoading || !selectedRoleId} className="btn-primary">
+              {assignLoading ? 'Assigning…' : 'Grant role'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

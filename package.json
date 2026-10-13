@@ -25,8 +25,10 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@esbuild/linux-x64": "^0.28.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.63.5",
     "concurrently": "^9.1.2",
-    "tsx": "^4.19.3",
-    "prisma": "^6.4.1"
+    "prisma": "^6.4.1",
+    "tsx": "^4.19.3"
   }
 }

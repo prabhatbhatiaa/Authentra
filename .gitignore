@@ -7,7 +7,7 @@ node_modules/
 coverage/
 tests/
 
-# Internal notes & personal progress tracking (excluded from git)
+# Documentation & Internal Notes (excluded from git)
 content/
 
 # Production Build outputs
@@ -45,6 +45,9 @@ lerna-debug.log*
 # Move / Aptos build artifacts
 contracts/authentra/build/
 contracts/authentra/.aptos/
+
+# Internal documentation & progress tracking (excluded from git)
+content/
 
 # TypeScript cache
 *.tsbuildinfo

@@ -1,40 +1,35 @@
-import { useEffect, useState } from 'react';
-import {
-  Shield,
-  LogOut,
-  Fingerprint,
-  Boxes,
-  CheckCheck,
-  FileText,
-  Sun,
-  Moon,
-} from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 
-import { LandingPage } from './pages/LandingPage';
-import { IdentityPage } from './pages/IdentityPage';
-import { AdminPortalPage } from './pages/AdminPortalPage';
-import { AssetsPage } from './pages/AssetsPage';
-import { VerifyPage } from './pages/VerifyPage';
-import { AuditPage } from './pages/AuditPage';
-import { DashboardPage } from './pages/DashboardPage';
 import { authClient } from './services/auth.service';
 import { UserProfile } from './types/auth.types';
+import { AppShell, HealthData } from './components/layout/AppShell';
+import { getNavItems, isTabId, TabId } from './components/layout/nav';
+import { LogoMark } from './components/ui/Logo';
 
-interface HealthData {
-  status: string;
-  service: string;
-  version: string;
-  environment: string;
-  database?: {
-    connected: boolean;
-    provider: string;
-    counts: {
-      organizations: number;
-      users: number;
-      assets: number;
-    };
-  };
-  timestamp: string;
+// Route-level code splitting: visitors only download the landing page,
+// signed-in users only download the console pages they open.
+const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const IdentityPage = lazy(() => import('./pages/IdentityPage').then((m) => ({ default: m.IdentityPage })));
+const AssetsPage = lazy(() => import('./pages/AssetsPage').then((m) => ({ default: m.AssetsPage })));
+const VerifyPage = lazy(() => import('./pages/VerifyPage').then((m) => ({ default: m.VerifyPage })));
+const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })));
+const AdminPortalPage = lazy(() => import('./pages/AdminPortalPage').then((m) => ({ default: m.AdminPortalPage })));
+
+/** Read the active console tab from the URL hash (`#/assets`). */
+function tabFromHash(): TabId {
+  const raw = window.location.hash.replace(/^#\/?/, '');
+  return isTabId(raw) ? raw : 'dashboard';
+}
+
+function SessionSplash({ label = 'Verifying session' }: { label?: string }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-canvas">
+      <LogoMark className="h-8 w-8 animate-pulse" />
+      <p className="meta">{label}</p>
+    </div>
+  );
 }
 
 export function App() {
@@ -42,9 +37,9 @@ export function App() {
   const [loadingHealth, setLoadingHealth] = useState<boolean>(true);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'identity' | 'assets' | 'verify' | 'audit' | 'admin'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<TabId>(tabFromHash);
 
-  // Theme Management
+  // Theme management
   const [isDark, setIsDark] = useState<boolean>(() => {
     const saved = localStorage.getItem('authentra_theme');
     if (saved) return saved === 'dark';
@@ -52,13 +47,8 @@ export function App() {
   });
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('authentra_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('authentra_theme', 'light');
-    }
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('authentra_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
   const toggleTheme = () => setIsDark((prev) => !prev);
@@ -112,200 +102,96 @@ export function App() {
     return () => window.removeEventListener('authentra_auth_change', handleAuthChange);
   }, []);
 
+  // Keep the active tab in sync with the URL so refresh and back/forward work.
+  useEffect(() => {
+    const onHashChange = () => setCurrentTab(tabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const navigate = useCallback((tab: TabId) => {
+    if (`#/${tab}` !== window.location.hash) {
+      window.location.hash = `/${tab}`;
+    }
+    setCurrentTab(tab);
+    window.scrollTo({ top: 0 });
+  }, []);
+
   const handleLogout = async () => {
     await authClient.logout();
     setUser(null);
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    setCurrentTab('dashboard');
     refreshHealth();
   };
 
-  const isAdminOrManager = user?.roles?.includes('ADMIN') || user?.roles?.includes('MANAGER');
+  const isAdminOrManager = !!(user?.roles?.includes('ADMIN') || user?.roles?.includes('MANAGER'));
 
-  // If user is unauthenticated, render the full Landing Page
-  if (!checkingAuth && !user) {
+  if (checkingAuth) {
+    return <SessionSplash />;
+  }
+
+  // Unauthenticated visitors see the marketing landing page
+  if (!user) {
     return (
-      <LandingPage
-        onLoginSuccess={(loggedUser) => setUser(loggedUser)}
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
-      />
+      <Suspense fallback={<SessionSplash label="Loading" />}>
+        <LandingPage
+          onLoginSuccess={(loggedUser) => {
+            setUser(loggedUser);
+            navigate('dashboard');
+          }}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+        />
+      </Suspense>
     );
   }
 
-  // Authenticated Application Workspace Shell
+  const navItems = getNavItems(isAdminOrManager);
+  // Guard against a hash pointing at a tab this user cannot see.
+  const activeTab: TabId = navItems.some((n) => n.id === currentTab) ? currentTab : 'dashboard';
+
+  const renderPage = () => {
+    switch (activeTab) {
+      case 'identity':
+        return <IdentityPage />;
+      case 'assets':
+        return <AssetsPage />;
+      case 'verify':
+        return <VerifyPage />;
+      case 'audit':
+        return <AuditPage />;
+      case 'admin':
+        return <AdminPortalPage />;
+      default:
+        return <DashboardPage user={user} canAdminister={isAdminOrManager} onNavigate={navigate} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#060911] text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950 transition-colors duration-300">
-      {/* Top Header */}
-      <header className="border-b border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl px-6 py-3.5 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-sm shadow-cyan-500/20">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-blue-700 dark:from-white dark:to-cyan-300">
-                  AUTHENTRA
-                </span>
-                <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10">
-                  v1.0.0
-                </span>
-              </div>
-            </div>
-
-            {user && (
-              <nav className="hidden sm:flex items-center gap-1 font-mono text-xs">
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('dashboard')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors ${
-                    currentTab === 'dashboard'
-                      ? 'bg-slate-200 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  DASHBOARD
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('identity')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    currentTab === 'identity'
-                      ? 'bg-slate-200 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <Fingerprint className="w-3.5 h-3.5" />
-                  <span>IDENTITY</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('assets')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    currentTab === 'assets'
-                      ? 'bg-slate-200 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <Boxes className="w-3.5 h-3.5" />
-                  <span>ASSETS</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('verify')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    currentTab === 'verify'
-                      ? 'bg-slate-200 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>VERIFY</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('audit')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    currentTab === 'audit'
-                      ? 'bg-slate-200 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>AUDIT</span>
-                </button>
-                {isAdminOrManager && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentTab('admin')}
-                    className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                      currentTab === 'admin'
-                        ? 'bg-slate-200 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 font-semibold'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>ADMIN</span>
-                  </button>
-                )}
-              </nav>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 text-sm font-mono">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 transition-colors"
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-            </button>
-
-            {/* DB Status */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10">
-              <span className={`w-2 h-2 rounded-full ${health?.database?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-              <span className="text-xs text-slate-600 dark:text-slate-400">
-                {loadingHealth ? 'Probing...' : health?.database?.connected ? 'PostgreSQL Active' : 'Offline'}
-              </span>
-            </div>
-
-            {user && (
-              <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-white/10">
-                <div className="text-right hidden md:block">
-                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                    {user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email}
-                  </div>
-                  <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
-                    [{user.roles.join(', ')}]
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 hover:text-rose-500 dark:text-slate-300 dark:hover:text-rose-400 border border-slate-200 dark:border-white/10 transition-colors"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col w-full">
-        {checkingAuth ? (
-          <div className="text-center py-24 font-mono text-xs text-slate-400 animate-pulse">
-            Verifying cryptographic credentials and session tokens...
-          </div>
-        ) : currentTab === 'identity' ? (
-          <IdentityPage />
-        ) : currentTab === 'assets' ? (
-          <AssetsPage />
-        ) : currentTab === 'verify' ? (
-          <VerifyPage />
-        ) : currentTab === 'audit' ? (
-          <AuditPage />
-        ) : currentTab === 'admin' ? (
-          <AdminPortalPage />
-        ) : (
-          <DashboardPage
-            user={user!}
-            onNavigate={(tab) => setCurrentTab(tab)}
-          />
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-white/10 bg-white/60 dark:bg-[#060911]/80 px-6 py-4 text-xs font-mono text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Authentra Security & Compliance Architecture</span>
-          <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-            Aptos Testnet Verified • Neon PostgreSQL Secure
-          </span>
-        </div>
-      </footer>
-    </div>
+    <AppShell
+      user={user}
+      navItems={navItems}
+      currentTab={activeTab}
+      onNavigate={navigate}
+      onLogout={handleLogout}
+      isDark={isDark}
+      onToggleTheme={toggleTheme}
+      health={health}
+      loadingHealth={loadingHealth}
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="flex w-full flex-1 flex-col"
+        >
+          <Suspense fallback={<div className="skeleton h-[60vh] rounded-xl" />}>{renderPage()}</Suspense>
+        </motion.div>
+      </AnimatePresence>
+    </AppShell>
   );
 }

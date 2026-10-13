@@ -1,23 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Shield,
-  Fingerprint,
-  Boxes,
-  Link,
-  Activity,
-  Plus,
-  Search,
-  Users,
-  FileText,
-  ExternalLink,
-  RefreshCw,
-  Clock,
-  ArrowUpRight,
-} from 'lucide-react';
+import { ArrowUpRight, ExternalLink, Plus, RefreshCw } from 'lucide-react';
 import { UserProfile } from '../types/auth.types';
-import { CardSkeleton, TableSkeleton } from '../components/LoadingSkeleton';
-import { EmptyState } from '../components/EmptyState';
+import { TableSkeleton } from '../components/LoadingSkeleton';
 import { StatusAlert } from '../components/StatusAlert';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
+import { ActionBadge } from '../components/ui/Badge';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { CopyButton } from '../components/ui/CopyButton';
+import { TabId } from '../components/layout/nav';
+import { formatRelative, greeting, truncateMiddle } from '../lib/format';
+import { cn } from '../lib/cn';
 
 interface DashboardData {
   identity: {
@@ -60,10 +53,19 @@ interface DashboardData {
 
 interface DashboardPageProps {
   user: UserProfile;
-  onNavigate: (tab: 'identity' | 'assets' | 'verify' | 'audit' | 'admin') => void;
+  canAdminister?: boolean;
+  onNavigate: (tab: TabId) => void;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }) => {
+const lifecycleSegments = [
+  { key: 'draft', label: 'Draft', className: 'bg-fg/25' },
+  { key: 'minted', label: 'Minted', className: 'bg-info' },
+  { key: 'active', label: 'Active', className: 'bg-ok' },
+  { key: 'transferred', label: 'Transferred', className: 'bg-accent' },
+  { key: 'revoked', label: 'Revoked', className: 'bg-bad' },
+] as const;
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({ user, canAdminister = false, onNavigate }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,312 +96,244 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ user, onNavigate }
     fetchMetrics();
   }, []);
 
-  const getActionBadge = (action: string) => {
-    if (action.includes('REVOKE')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/10 text-red-400 border border-red-500/20">
-          {action}
-        </span>
-      );
-    }
-    if (action.includes('MINT') || action.includes('CREATED')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          {action}
-        </span>
-      );
-    }
-    if (action.includes('ASSIGN') || action.includes('TRANSFER')) {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/20">
-          {action}
-        </span>
-      );
-    }
-    return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
-        {action}
-      </span>
-    );
-  };
+  const firstName = user.firstName || user.email.split('@')[0];
+  const assetTotal = data?.assets.total ?? 0;
+
+  const kpis: Array<{ label: string; value: number | null | undefined; sub: React.ReactNode }> = [
+    {
+      label: 'Assets under custody',
+      value: data?.assets.total,
+      sub: `${data?.assets.active ?? 0} active · ${data?.assets.revoked ?? 0} revoked`,
+    },
+    {
+      label: 'Identities',
+      value: data?.identity.totalUsers,
+      sub: `${data?.identity.verifiedIdentities ?? 0} verified DIDs`,
+    },
+    {
+      label: 'Ledger height',
+      value: data?.blockchain.blockHeight ? Number(data.blockchain.blockHeight) : null,
+      sub: `Epoch ${data?.blockchain.epoch ?? '—'} · ${(data?.blockchain.network ?? '—').toUpperCase()}`,
+    },
+    {
+      label: 'On-chain transactions',
+      value: data?.blockchain.totalTransactions,
+      sub: data?.blockchain.connected ? 'Aptos connected' : loading ? 'Connecting…' : 'Aptos unreachable',
+    },
+  ];
+
+  const shortcuts: Array<{ tab: TabId; title: string; caption: string }> = [
+    { tab: 'assets', title: 'Issue an asset', caption: 'Draft, then anchor on Aptos' },
+    { tab: 'verify', title: 'Verify an asset', caption: 'Cross-layer parity check' },
+    canAdminister
+      ? { tab: 'admin', title: 'Manage access', caption: 'Roles and permissions' }
+      : { tab: 'identity', title: 'View my identity', caption: 'DID document' },
+    { tab: 'audit', title: 'Open audit log', caption: 'Append-only history' },
+  ];
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto w-full text-left">
-      {/* Executive Welcome Card */}
-      <div className="p-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-1">
-            <Activity className="w-3.5 h-3.5" />
-            <span>Task 14: Executive Command Center</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <span>{user.organization.name}</span>
-            <span className="text-xs font-mono font-normal px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-              {user.organization.slug}
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={user.organization?.slug ?? 'workspace'}
+        title="Overview"
+        description={
+          <>
+            {greeting()}, {firstName}. Custody across {user.organization?.name || 'your organization'}, reconciled
+            between PostgreSQL and the Aptos ledger.
+          </>
+        }
+        meta={
+          user.identity?.did && (
+            <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-line/10 py-0.5 pl-2.5 pr-0.5 font-mono text-[12px] text-fg-muted">
+              <span className="truncate">{truncateMiddle(user.identity.did, 24, 6)}</span>
+              <CopyButton value={user.identity.did} size="sm" label="Copy DID" />
             </span>
-          </h1>
-          <p className="text-slate-400 text-xs sm:text-sm font-mono">
-            DID: <span className="text-emerald-400">{user.identity?.did || 'Generating...'}</span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={fetchMetrics}
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors"
-            title="Refresh metrics"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Action Dock */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <button
-          type="button"
-          onClick={() => onNavigate('assets')}
-          className="p-4 rounded-xl bg-slate-900/70 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/40 text-left transition-all group"
-        >
-          <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-400 mb-2">
-            <Plus className="w-5 h-5" />
-            <ArrowUpRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
-          </div>
-          <div className="font-semibold text-white text-sm">Create Asset</div>
-          <div className="text-[11px] text-slate-500 font-mono mt-0.5">Draft & mint tokens</div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onNavigate('verify')}
-          className="p-4 rounded-xl bg-slate-900/70 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/40 text-left transition-all group"
-        >
-          <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-400 mb-2">
-            <Search className="w-5 h-5" />
-            <ArrowUpRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
-          </div>
-          <div className="font-semibold text-white text-sm">Verify Asset</div>
-          <div className="text-[11px] text-slate-500 font-mono mt-0.5">Dual state proof</div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onNavigate('admin')}
-          className="p-4 rounded-xl bg-slate-900/70 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/40 text-left transition-all group"
-        >
-          <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-400 mb-2">
-            <Users className="w-5 h-5" />
-            <ArrowUpRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
-          </div>
-          <div className="font-semibold text-white text-sm">Manage Access</div>
-          <div className="text-[11px] text-slate-500 font-mono mt-0.5">RBAC & permissions</div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onNavigate('audit')}
-          className="p-4 rounded-xl bg-slate-900/70 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/40 text-left transition-all group"
-        >
-          <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-400 mb-2">
-            <FileText className="w-5 h-5" />
-            <ArrowUpRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
-          </div>
-          <div className="font-semibold text-white text-sm">View Audit</div>
-          <div className="text-[11px] text-slate-500 font-mono mt-0.5">Immutable journal</div>
-        </button>
-      </div>
+          )
+        }
+        actions={
+          <>
+            <button type="button" onClick={fetchMetrics} className="btn-icon h-10 w-10" title="Refresh" aria-label="Refresh metrics">
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            </button>
+            <button type="button" onClick={() => onNavigate('assets')} className="btn-primary">
+              <Plus className="h-4 w-4" /> Issue asset
+            </button>
+          </>
+        }
+      />
 
       {error && (
-        <StatusAlert
-          type="error"
-          title="Dashboard Error"
-          message={error}
-          onRetry={fetchMetrics}
-          onDismiss={() => setError(null)}
-        />
+        <StatusAlert type="error" title="Telemetry alert" message={error} onRetry={fetchMetrics} onDismiss={() => setError(null)} />
       )}
 
-      {/* Primary Metrics Grid */}
-      {loading && !data ? (
-        <CardSkeleton count={4} />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
-        {/* Total Assets */}
-        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Boxes className="w-4 h-4 text-emerald-400" /> TOTAL ASSETS
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Registry</span>
-          </div>
-          <div className="text-3xl font-bold text-white font-sans">{data?.assets.total ?? '-'}</div>
-          <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/60">
-            <span>Active: <strong className="text-emerald-400">{data?.assets.active ?? 0}</strong></span>
-            <span>Revoked: <strong className="text-red-400">{data?.assets.revoked ?? 0}</strong></span>
-          </div>
-        </div>
-
-        {/* Cryptographic Identities */}
-        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Fingerprint className="w-4 h-4 text-emerald-400" /> IDENTITIES
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">W3C DID</span>
-          </div>
-          <div className="text-3xl font-bold text-white font-sans">{data?.identity.activeIdentities ?? '-'}</div>
-          <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/60">
-            <span>Verified: <strong className="text-emerald-400">{data?.identity.verifiedIdentities ?? 0}</strong></span>
-            <span>Accounts: <strong className="text-slate-300">{data?.identity.totalUsers ?? 0}</strong></span>
-          </div>
-        </div>
-
-        {/* Blockchain Network */}
-        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Link className="w-4 h-4 text-emerald-400" /> APTOS NETWORK
-            </span>
-            <span
-              className={`w-2 h-2 rounded-full ${
-                data?.blockchain.connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-              }`}
-            />
-          </div>
-          <div className="text-2xl font-bold text-white font-sans uppercase">
-            {data?.blockchain.network ?? 'Aptos'}
-          </div>
-          <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/60">
-            <span>Block: <strong className="text-slate-300">{data?.blockchain.blockHeight ? `#${data.blockchain.blockHeight.slice(-5)}` : '-'}</strong></span>
-            <span>Epoch: <strong className="text-slate-300">{data?.blockchain.epoch ?? '-'}</strong></span>
-          </div>
-        </div>
-
-        {/* User Roles & Permissions */}
-        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-emerald-400" /> YOUR PRIVILEGES
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">RBAC</span>
-          </div>
-          <div className="text-lg font-bold text-white font-sans flex flex-wrap gap-1.5">
-            {user.roles.map((r) => (
-              <span key={r} className="px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                {r}
-              </span>
-            ))}
-          </div>
-          <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-800/60">
-            <span>Active Permissions: <strong className="text-emerald-400">{user.permissions.length} granted</strong></span>
-          </div>
-        </div>
-      </div>
-      )}
-
-      {/* Two-Column Activity & Transactions Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Recent Audit Activity (7 cols) */}
-        <div className="lg:col-span-7 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <span className="font-semibold text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-400" />
-              <span>RECENT SYSTEM ACTIVITY</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => onNavigate('audit')}
-              className="text-slate-400 hover:text-emerald-400 text-[11px] flex items-center gap-1 transition-colors"
-            >
-              <span>View All</span>
-              <ArrowUpRight className="w-3 h-3" />
-            </button>
-          </div>
-
-          <div className="space-y-2.5">
-            {loading && !data ? (
-              <TableSkeleton rows={3} cols={2} />
-            ) : data?.recentActivity && data.recentActivity.length > 0 ? (
-              data.recentActivity.map((act) => (
-                <div
-                  key={act.id}
-                  className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-3"
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      {getActionBadge(act.action)}
-                      <span className="text-slate-400 text-[11px]">{act.entity}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-300">
-                      Actor: <span className="font-sans text-white">{act.actorName}</span>
-                    </div>
-                  </div>
-                  <div className="text-right text-[10px] text-slate-500 shrink-0">
-                    <Clock className="w-3 h-3 inline mr-1 opacity-60" />
-                    {new Date(act.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <EmptyState
-                icon={Activity}
-                title="No Audit Entries"
-                description="Lifecycle actions and cryptographic assignments will appear here."
-              />
+      {/* KPI strip */}
+      <section className="card grid grid-cols-2 overflow-hidden xl:grid-cols-4">
+        {kpis.map((k, i) => (
+          <div
+            key={k.label}
+            className={cn(
+              'flex min-h-[148px] flex-col justify-between gap-6 p-5',
+              i % 2 === 1 && 'border-l border-line/[0.08]',
+              i >= 2 && 'border-t border-line/[0.08] xl:border-t-0',
+              i === 2 && 'xl:border-l'
             )}
+          >
+            <span className="text-[13px] text-fg-muted">{k.label}</span>
+            <div>
+              {loading && !data ? (
+                <div className="skeleton h-11 w-24" />
+              ) : (
+                <AnimatedNumber
+                  value={k.value ?? null}
+                  duration={0.9}
+                  className="block truncate font-serif text-[clamp(1.6rem,3.4vw,3.25rem)] leading-none tabular text-fg"
+                />
+              )}
+              <div className="meta mt-2 truncate">{k.sub}</div>
+            </div>
           </div>
-        </div>
+        ))}
+      </section>
 
-        {/* Recent On-Chain Transactions (5 cols) */}
-        <div className="lg:col-span-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <span className="font-semibold text-white flex items-center gap-2">
-              <Link className="w-4 h-4 text-emerald-400" />
-              <span>ON-CHAIN TRANSACTIONS</span>
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-              {data?.blockchain.totalTransactions ?? 0} total
-            </span>
-          </div>
-
-          <div className="space-y-2.5">
-            {loading && !data ? (
-              <TableSkeleton rows={3} cols={2} />
-            ) : data?.recentTransactions && data.recentTransactions.length > 0 ? (
-              data.recentTransactions.map((tx) => (
+      {/* Lifecycle distribution */}
+      <Panel title="Lifecycle distribution" action={<span className="meta">{assetTotal} assets</span>}>
+        <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-fg/[0.06]">
+          {data &&
+            assetTotal > 0 &&
+            lifecycleSegments.map((seg) => {
+              const v = data.assets[seg.key];
+              if (!v) return null;
+              return (
                 <div
-                  key={tx.txHash}
-                  className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5"
-                >
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-white">{tx.txType}</span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] border border-emerald-500/20">
-                      {tx.status}
-                    </span>
+                  key={seg.key}
+                  className={cn('h-full transition-[width] duration-700 ease-out first:rounded-l-full last:rounded-r-full', seg.className)}
+                  style={{ width: `${(v / assetTotal) * 100}%` }}
+                  title={`${seg.label}: ${v}`}
+                />
+              );
+            })}
+        </div>
+        <dl className="mt-5 grid grid-cols-3 gap-y-4 sm:grid-cols-5">
+          {lifecycleSegments.map((seg) => (
+            <div key={seg.key}>
+              <dt className="flex items-center gap-2 text-[13px] text-fg-muted">
+                <span className={cn('h-2 w-2 rounded-[2px]', seg.className)} />
+                {seg.label}
+              </dt>
+              <dd className="mt-1 font-serif text-[28px] leading-none tabular text-fg">{data ? data.assets[seg.key] : '—'}</dd>
+            </div>
+          ))}
+        </dl>
+      </Panel>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* Activity */}
+        <Panel
+          className="xl:col-span-8"
+          title="Recent operations"
+          padded={false}
+          action={
+            <button type="button" onClick={() => onNavigate('audit')} className="btn-ghost btn-sm -mr-2">
+              View all <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          }
+        >
+          {loading && !data ? (
+            <div className="p-5">
+              <TableSkeleton rows={5} cols={3} />
+            </div>
+          ) : data?.recentActivity && data.recentActivity.length > 0 ? (
+            <ul className="divide-y divide-line/[0.06]">
+              {data.recentActivity.slice(0, 8).map((act) => (
+                <li key={act.id} className="flex flex-col gap-1.5 px-5 py-3.5 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <ActionBadge action={act.action} />
+                    <span className="truncate text-sm text-fg">{act.entity}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500">
-                    <span className="truncate max-w-[150px]">{tx.txHash}</span>
+                  <span className="truncate text-[13px] text-fg-subtle sm:w-56">{act.actorEmail || act.actorName || 'System'}</span>
+                  <span className="meta shrink-0 sm:w-20 sm:text-right">{formatRelative(act.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-5 py-12 text-center text-sm text-fg-subtle">No operations recorded yet.</p>
+          )}
+        </Panel>
+
+        <div className="space-y-6 xl:col-span-4">
+          <Panel title="Shortcuts" padded={false}>
+            <ul className="divide-y divide-line/[0.06]">
+              {shortcuts.map((s) => (
+                <li key={s.tab}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(s.tab)}
+                    className="group flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition-colors duration-150 hover:bg-fg/[0.03]"
+                  >
+                    <span>
+                      <span className="block text-sm text-fg">{s.title}</span>
+                      <span className="block text-[13px] text-fg-subtle">{s.caption}</span>
+                    </span>
+                    <ArrowUpRight className="h-4 w-4 text-fg-subtle transition-transform duration-200 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          <Panel title="Latest transactions" padded={false}>
+            {loading && !data ? (
+              <div className="p-5">
+                <TableSkeleton rows={3} cols={3} />
+              </div>
+            ) : data?.recentTransactions && data.recentTransactions.length > 0 ? (
+              <ul className="divide-y divide-line/[0.06]">
+                {data.recentTransactions.slice(0, 4).map((tx) => (
+                  <li key={tx.txHash} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm text-fg">{tx.txType}</div>
+                      <div className="meta">{truncateMiddle(tx.txHash, 10, 6)}</div>
+                    </div>
                     <a
                       href={`https://explorer.aptoslabs.com/txn/${tx.txHash}?network=testnet`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-emerald-400 hover:underline flex items-center gap-0.5"
+                      className="btn-icon h-8 w-8 border-transparent"
+                      title="Open in Aptos Explorer"
+                      aria-label="Open in Aptos Explorer"
                     >
-                      <span>Explorer</span>
-                      <ExternalLink className="w-2.5 h-2.5" />
+                      <ExternalLink className="h-3.5 w-3.5" />
                     </a>
-                  </div>
-                </div>
-              ))
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <EmptyState
-                icon={Link}
-                title="No On-Chain Hashes"
-                description="Broadcasted Aptos transactions and verifiable digests will stream here."
-              />
+              <p className="px-5 py-8 text-center text-sm text-fg-subtle">No transactions anchored yet.</p>
             )}
-          </div>
+          </Panel>
+
+          <Panel title="Consensus node">
+            <dl className="-my-2.5">
+              <div className="kv">
+                <dt>Aptos fullnode</dt>
+                <dd className={data?.blockchain.connected ? 'text-ok' : 'text-warn'}>
+                  {data?.blockchain.connected ? 'Testnet online' : 'Unavailable'}
+                </dd>
+              </div>
+              <div className="kv">
+                <dt>Module</dt>
+                <dd className="font-mono text-[13px]">{truncateMiddle(data?.blockchain.moduleAddress, 6, 4) || '—'}</dd>
+              </div>
+              <div className="kv">
+                <dt>Hashing</dt>
+                <dd>SHA-256 · Argon2id</dd>
+              </div>
+              <div className="kv">
+                <dt>Relational store</dt>
+                <dd>PostgreSQL · Prisma</dd>
+              </div>
+            </dl>
+          </Panel>
         </div>
       </div>
     </div>

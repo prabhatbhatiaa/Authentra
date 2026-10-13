@@ -1,27 +1,106 @@
 import { useEffect, useState } from 'react';
 import {
-  Fingerprint,
-  Key,
-  ShieldCheck,
+  BadgeCheck,
+  Boxes,
   Building2,
-  Calendar,
-  Copy,
-  Check,
-  Search,
   Code2,
+  History,
+  KeyRound,
+  Search,
+  ShieldCheck,
+  Wallet,
 } from 'lucide-react';
 import { DetailSkeleton } from '../components/LoadingSkeleton';
 import { StatusAlert } from '../components/StatusAlert';
 import { identityClient } from '../services/identity.service';
 import { DetailedIdentity, ResolveIdentityResponse } from '../types/identity.types';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
+import { Badge } from '../components/ui/Badge';
+import { CopyButton } from '../components/ui/CopyButton';
+import { JsonView } from '../components/ui/JsonView';
+import { formatDateTime } from '../lib/format';
+import { cn } from '../lib/cn';
+
+/** Machine-readable zone line, passport style: uppercase, `<` padded to a fixed width. */
+function mrz(text: string, width = 44) {
+  const clean = text.toUpperCase().replace(/[^A-Z0-9]/g, '<');
+  return (clean + '<'.repeat(width)).slice(0, width);
+}
+
+/** Monochrome credential "data page" for the signed-in identity. */
+function CredentialCard({ identity }: { identity: DetailedIdentity }) {
+  const verified = identity.verificationStatus === 'VERIFIED';
+  const holder = identity.user.firstName
+    ? `${identity.user.firstName} ${identity.user.lastName ?? ''}`.trim()
+    : identity.user.email;
+  const issued = new Date(identity.createdAt);
+
+  return (
+    <div className="group pb-3 [perspective:1200px]">
+      <div className="relative aspect-[1.586/1] w-full overflow-hidden rounded-xl border border-white/10 bg-[#0c0c0c] text-[#ededed] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.7)] transition-transform duration-500 ease-out [transform:rotateX(4deg)_rotateY(-8deg)] group-hover:[transform:rotateX(0deg)_rotateY(0deg)]">
+        {/* Fine dot grid */}
+        <div
+          className="absolute inset-0 opacity-[0.12]"
+          style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.9) 0.6px, transparent 0.6px)', backgroundSize: '12px 12px' }}
+        />
+        {/* Seal watermark */}
+        <svg className="absolute -right-10 top-1/2 h-[85%] -translate-y-1/2 opacity-[0.07]" viewBox="0 0 100 100" fill="none" aria-hidden>
+          <circle cx="50" cy="50" r="46" stroke="white" strokeWidth="1.5" />
+          <circle cx="50" cy="50" r="38" stroke="white" strokeWidth="0.5" strokeDasharray="1 2" />
+          <circle cx="50" cy="50" r="14" fill="white" />
+        </svg>
+
+        <div className="relative flex h-full flex-col justify-between p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+                <circle cx="12" cy="12" r="9.25" stroke="#ededed" strokeWidth="1.75" />
+                <circle cx="12" cy="12" r="3" fill="#ff5b1f" />
+              </svg>
+              <span className="text-[13px] font-semibold tracking-[-0.02em]">Authentra</span>
+            </div>
+            <span className="font-mono text-[10px] text-white/50">Verifiable identity · W3C DID</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+            <div className="col-span-2 min-w-0 sm:col-span-3">
+              <div className="font-mono text-[9.5px] text-white/40">Holder</div>
+              <div className="truncate font-serif text-[26px] leading-tight sm:text-[30px]">{holder}</div>
+            </div>
+            <div>
+              <div className="font-mono text-[9.5px] text-white/40">Status</div>
+              <div className={cn('font-mono text-[11px]', verified ? 'text-[#4ade80]' : 'text-[#facc15]')}>
+                {identity.verificationStatus.replace(/_/g, ' ')}
+              </div>
+            </div>
+            <div>
+              <div className="font-mono text-[9.5px] text-white/40">Issued</div>
+              <div className="font-mono text-[11px]">{issued.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+            </div>
+            <div className="hidden sm:block">
+              <div className="font-mono text-[9.5px] text-white/40">Organization</div>
+              <div className="truncate font-mono text-[11px]">{identity.user.organization.slug}</div>
+            </div>
+          </div>
+
+          {/* Machine-readable zone */}
+          <div className="space-y-0.5 border-t border-white/10 pt-3 font-mono text-[9.5px] leading-tight tracking-[0.12em] text-white/55 sm:text-[10.5px]">
+            <div className="truncate">{mrz(`ID<AUTHENTRA<${holder}`)}</div>
+            <div className="truncate">{mrz(identity.walletAddress.replace(/^0x/, ''))}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function IdentityPage() {
   const [identity, setIdentity] = useState<DetailedIdentity | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // DID Resolution lookup state
+  // DID resolution lookup state
   const [lookupDid, setLookupDid] = useState<string>('');
   const [resolvedIdentity, setResolvedIdentity] = useState<ResolveIdentityResponse | null>(null);
   const [lookupLoading, setLookupLoading] = useState<boolean>(false);
@@ -48,12 +127,6 @@ export function IdentityPage() {
     fetchIdentity();
   }, []);
 
-  const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lookupDid.trim()) return;
@@ -77,8 +150,7 @@ export function IdentityPage() {
     setActionLoading(true);
     setActionSuccess(null);
 
-    const nextStatus =
-      identity.verificationStatus === 'VERIFIED' ? 'PENDING_VERIFICATION' : 'VERIFIED';
+    const nextStatus = identity.verificationStatus === 'VERIFIED' ? 'PENDING_VERIFICATION' : 'VERIFIED';
 
     try {
       const res = await identityClient.updateVerification(
@@ -96,19 +168,15 @@ export function IdentityPage() {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6 max-w-6xl mx-auto w-full">
-        <DetailSkeleton />
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (error || !identity) {
     return (
-      <div className="max-w-2xl mx-auto p-4">
+      <div className="mx-auto w-full max-w-2xl">
         <StatusAlert
           type="error"
-          title="Identity Resolution Error"
+          title="Identity resolution error"
           message={error || 'No identity is associated with this account.'}
           onRetry={fetchIdentity}
         />
@@ -116,210 +184,199 @@ export function IdentityPage() {
     );
   }
 
-  return (
-    <div className="space-y-8 max-w-6xl mx-auto w-full">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800/90 shadow-xl">
-        <div className="flex items-start gap-4">
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <Fingerprint className="w-8 h-8" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Cryptographic Identity
-              </h1>
-              <span
-                className={`text-xs font-mono px-2.5 py-0.5 rounded-full border ${
-                  identity.verificationStatus === 'VERIFIED'
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-                    : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
-                }`}
-              >
-                ● {identity.verificationStatus}
-              </span>
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                STATUS: {identity.status}
-              </span>
-            </div>
-            <p className="text-slate-400 text-xs sm:text-sm">
-              W3C Decentralized Identifier bound to the Aptos blockchain public ledger.
-            </p>
-          </div>
-        </div>
+  const verified = identity.verificationStatus === 'VERIFIED';
 
-        <div className="flex items-center gap-2">
+  return (
+    <div className="space-y-8 sm:space-y-10">
+      <PageHeader
+        eyebrow="W3C DID v1.0"
+        title="Identity"
+        description="A W3C Decentralized Identifier derived from your Aptos account and bound to the public ledger — resolvable by anyone, controlled only by you."
+        meta={
+          <>
+            <Badge tone={verified ? 'ok' : 'warn'} dot>
+              {identity.verificationStatus.replace(/_/g, ' ')}
+            </Badge>
+            <Badge>STATUS · {identity.status}</Badge>
+          </>
+        }
+        actions={
           <button
             onClick={handleToggleVerification}
             disabled={actionLoading}
-            className="px-4 py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+            className={verified ? 'btn-secondary' : 'btn-primary'}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>
-              {identity.verificationStatus === 'VERIFIED'
-                ? 'Set Pending Verification'
-                : 'Verify Identity'}
-            </span>
+            <ShieldCheck className="h-4 w-4" />
+            {actionLoading ? 'Updating…' : verified ? 'Set pending verification' : 'Verify identity'}
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {actionSuccess && (
         <StatusAlert
           type="success"
-          title="Verification Status Updated"
+          title="Verification status updated"
           message={actionSuccess}
           onDismiss={() => setActionSuccess(null)}
         />
       )}
 
-      {/* Main Identity Specs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card 1: DID & Aptos Binding */}
-        <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <Key className="w-4 h-4 text-emerald-400" /> Decentralized Identifier (DID)
-            </span>
-            <button
-              onClick={() => handleCopy(identity.did, 'did')}
-              className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition-colors"
-              title="Copy DID"
-            >
-              {copiedField === 'did' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            </button>
+      {/* ── Credential + governance ─────────────────────────────── */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.05fr_1fr]">
+        <div className="space-y-5">
+          <div className="mx-auto w-full max-w-[520px] lg:mx-0">
+            <CredentialCard identity={identity} />
           </div>
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-400 break-all select-all">
-            {identity.did}
-          </div>
-
-          <div className="pt-2 space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-emerald-400" /> Bound Aptos Wallet Address
-              </span>
-              <button
-                onClick={() => handleCopy(identity.walletAddress, 'wallet')}
-                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-400"
-              >
-                {copiedField === 'wallet' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="card rounded-xl p-5">
+              <div className="flex items-center gap-2 text-xs text-fg-subtle">
+                <Boxes className="h-3.5 w-3.5" /> Assets held
+              </div>
+              <div className="mt-3 font-serif text-4xl leading-none text-fg tabular">
+                {identity.stats?.ownedAssetsCount ?? 0}
+              </div>
             </div>
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 break-all select-all">
-              {identity.walletAddress}
+            <div className="card rounded-xl p-5">
+              <div className="flex items-center gap-2 text-xs text-fg-subtle">
+                <History className="h-3.5 w-3.5" /> Custody intervals
+              </div>
+              <div className="mt-3 font-serif text-4xl leading-none text-fg tabular">
+                {identity.stats?.ownershipHistoryCount ?? 0}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Organization & Assigned Roles */}
-        <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-emerald-400" /> Organization & Governance
-          </span>
-
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex justify-between py-2 border-b border-slate-800/80">
-              <span className="text-slate-400">Organization:</span>
-              <span className="text-slate-200 font-semibold">{identity.user.organization.name}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-slate-800/80">
-              <span className="text-slate-400">Account Owner:</span>
-              <span className="text-slate-200 font-semibold">{identity.user.email}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-slate-800/80">
-              <span className="text-slate-400">Assigned Roles:</span>
-              <div className="flex gap-1.5">
-                {identity.user.roles.map((r) => (
-                  <span key={r} className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold">
-                    {r}
-                  </span>
-                ))}
+        <div className="space-y-5">
+          <Panel title="Decentralized identifier" icon={KeyRound}>
+            <div className="space-y-4">
+              <div>
+                <div className="label">DID</div>
+                <div className="well flex items-start justify-between gap-2 p-3 pl-4">
+                  <code className="min-w-0 break-all py-1 font-mono text-xs leading-relaxed text-fg">{identity.did}</code>
+                  <CopyButton value={identity.did} label="Copy DID" />
+                </div>
+              </div>
+              <div>
+                <div className="label flex items-center gap-1.5">
+                  <Wallet className="h-3.5 w-3.5" /> Bound Aptos wallet
+                </div>
+                <div className="well flex items-start justify-between gap-2 p-3 pl-4">
+                  <code className="min-w-0 break-all py-1 font-mono text-xs leading-relaxed text-fg-muted">
+                    {identity.walletAddress}
+                  </code>
+                  <CopyButton value={identity.walletAddress} label="Copy wallet address" />
+                </div>
               </div>
             </div>
-            <div className="flex justify-between py-2">
-              <span className="text-slate-400 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-500" /> Issued Timestamp:
-              </span>
-              <span className="text-slate-400">{new Date(identity.createdAt).toLocaleString()}</span>
-            </div>
-          </div>
+          </Panel>
+
+          <Panel title="Organization & governance" icon={Building2}>
+            <dl className="-my-2.5">
+              <div className="kv">
+                <dt>Organization</dt>
+                <dd className="font-medium">{identity.user.organization.name}</dd>
+              </div>
+              <div className="kv">
+                <dt>Account owner</dt>
+                <dd className="truncate">{identity.user.email}</dd>
+              </div>
+              <div className="kv">
+                <dt>Assigned roles</dt>
+                <dd className="flex flex-wrap justify-end gap-1.5">
+                  {identity.user.roles.map((r) => (
+                    <Badge key={r}>
+                      {r}
+                    </Badge>
+                  ))}
+                </dd>
+              </div>
+              <div className="kv">
+                <dt>Issued</dt>
+                <dd className="text-fg-muted">{formatDateTime(identity.createdAt)}</dd>
+              </div>
+            </dl>
+          </Panel>
         </div>
       </div>
 
-      {/* DID Document & Universal Resolver Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Interactive W3C DID Document */}
-        <div className="lg:col-span-7 p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-emerald-400" /> W3C DID Document Specification
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-emerald-400 border border-slate-800">
-              did:authentra:aptos
-            </span>
-          </div>
-          <p className="text-xs text-slate-400">
-            Machine-readable cryptographic proof document specifying verification methods and authentication keys.
+      {/* ── DID document + resolver ─────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <Panel
+          className="lg:col-span-7"
+          title="DID document"
+          icon={Code2}
+          action={<Badge>did:authentra:aptos</Badge>}
+        >
+          <p className="mb-4 text-sm text-fg-muted">
+            Machine-readable proof specifying verification methods and authentication keys.
           </p>
-          <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800/90 text-emerald-400 text-xs font-mono overflow-x-auto max-h-80 select-all">
-            {JSON.stringify(identity.didDocument, null, 2)}
-          </pre>
-        </div>
+          <JsonView value={identity.didDocument} className="max-h-[420px]" />
+        </Panel>
 
-        {/* Right: Public DID Resolver Explorer */}
-        <div className="lg:col-span-5 p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
-          <div className="space-y-1">
-            <span className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <Search className="w-4 h-4 text-emerald-400" /> Public DID Resolver
-            </span>
-            <p className="text-xs text-slate-400">
-              Query and resolve any Authentra decentralized identifier across the network.
-            </p>
-          </div>
-
+        <Panel className="lg:col-span-5" title="Public DID resolver" icon={Search}>
+          <p className="mb-4 text-sm text-fg-muted">
+            Resolve any Authentra decentralized identifier across the network.
+          </p>
           <form onSubmit={handleLookup} className="space-y-3">
-            <div className="relative">
-              <input
-                type="text"
-                value={lookupDid}
-                onChange={(e) => setLookupDid(e.target.value)}
-                placeholder="did:authentra:aptos:0x..."
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-              />
+            <input
+              type="text"
+              value={lookupDid}
+              onChange={(e) => setLookupDid(e.target.value)}
+              placeholder="did:authentra:aptos:0x…"
+              className="input font-mono text-xs"
+              aria-label="DID to resolve"
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={lookupLoading || !lookupDid.trim()}
+                className="btn-primary flex-1"
+              >
+                {lookupLoading ? 'Resolving on ledger…' : 'Resolve DID'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLookupDid(identity.did)}
+                className="btn-secondary"
+                title="Use my DID"
+              >
+                Mine
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={lookupLoading || !lookupDid.trim()}
-              className="w-full py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
-            >
-              {lookupLoading ? 'Resolving on Ledger...' : 'Resolve DID Document'}
-            </button>
           </form>
 
           {lookupError && (
-            <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-900/50 text-rose-300 text-xs font-mono">
-              {lookupError}
+            <div className="mt-4">
+              <StatusAlert type="error" message={lookupError} onDismiss={() => setLookupError(null)} />
             </div>
           )}
 
           {resolvedIdentity && (
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs space-y-2">
-              <div className="text-emerald-400 font-semibold flex items-center justify-between">
-                <span>✓ Verified Identity Match</span>
-                <span className="text-[10px] text-slate-400">{resolvedIdentity.status}</span>
+            <div className="well mt-4 space-y-3 p-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-semibold text-ok">
+                  <BadgeCheck className="h-4 w-4" /> Identity resolved
+                </span>
+                <Badge>{resolvedIdentity.status}</Badge>
               </div>
-              <div className="text-[11px] text-slate-300 break-all">
-                <span className="text-slate-500">DID: </span>{resolvedIdentity.did}
-              </div>
-              <div className="text-[11px] text-slate-300 break-all">
-                <span className="text-slate-500">Wallet: </span>{resolvedIdentity.walletAddress}
-              </div>
-              <div className="text-[11px] text-slate-300">
-                <span className="text-slate-500">Org: </span>{resolvedIdentity.organization.name}
-              </div>
+              <dl className="space-y-2 text-xs">
+                <div>
+                  <dt className="text-fg-subtle">DID</dt>
+                  <dd className="break-all font-mono text-fg">{resolvedIdentity.did}</dd>
+                </div>
+                <div>
+                  <dt className="text-fg-subtle">Wallet</dt>
+                  <dd className="break-all font-mono text-fg-muted">{resolvedIdentity.walletAddress}</dd>
+                </div>
+                <div className="flex justify-between gap-3 border-t border-line/[0.06] pt-2">
+                  <dt className="text-fg-subtle">Organization</dt>
+                  <dd className="text-fg">{resolvedIdentity.organization.name}</dd>
+                </div>
+              </dl>
             </div>
           )}
-        </div>
+        </Panel>
       </div>
     </div>
   );

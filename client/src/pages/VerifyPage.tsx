@@ -1,22 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import {
-  Search,
-  CheckCircle2,
   AlertTriangle,
-  XCircle,
+  CheckCircle2,
   Clock,
-  Shield,
-  Layers,
-  ExternalLink,
-  History,
-  Hash,
   Database,
+  ExternalLink,
+  Hash,
+  History,
+  Layers,
   Link,
   RefreshCw,
+  Search,
+  ShieldCheck,
+  XCircle,
 } from 'lucide-react';
 import { DetailSkeleton } from '../components/LoadingSkeleton';
-import { EmptyState } from '../components/EmptyState';
 import { StatusAlert } from '../components/StatusAlert';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Panel } from '../components/ui/Panel';
+import { Badge, StatusBadge, Tone } from '../components/ui/Badge';
+import { CopyButton } from '../components/ui/CopyButton';
+import { formatDateTime, truncateMiddle } from '../lib/format';
+import { cn } from '../lib/cn';
 
 interface VerificationData {
   verdict: 'VERIFIED' | 'REVOKED' | 'MISMATCH' | 'BLOCKCHAIN_UNAVAILABLE' | 'NOT_FOUND' | 'UNANCHORED';
@@ -82,6 +87,63 @@ interface VerificationData {
   }>;
 }
 
+type Verdict = VerificationData['verdict'];
+
+const verdictMeta: Record<
+  Verdict,
+  { label: string; tone: Tone; ring: string; text: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  VERIFIED: { label: 'Verified', tone: 'ok', ring: 'text-ok', text: 'text-ok', icon: ShieldCheck },
+  REVOKED: { label: 'Revoked', tone: 'bad', ring: 'text-bad', text: 'text-bad', icon: XCircle },
+  MISMATCH: { label: 'State mismatch', tone: 'warn', ring: 'text-warn', text: 'text-warn', icon: AlertTriangle },
+  BLOCKCHAIN_UNAVAILABLE: { label: 'RPC unavailable', tone: 'info', ring: 'text-info', text: 'text-info', icon: Clock },
+  UNANCHORED: { label: 'Off-chain only', tone: 'accent', ring: 'text-accent', text: 'text-accent', icon: Layers },
+  NOT_FOUND: { label: 'Not found', tone: 'neutral', ring: 'text-fg-subtle', text: 'text-fg-muted', icon: XCircle },
+};
+
+/** Rotating circular seal stamped with the verdict. */
+function VerdictSeal({ verdict }: { verdict: Verdict }) {
+  const meta = verdictMeta[verdict];
+  const Icon = meta.icon;
+  const pathId = useId().replace(/:/g, '');
+  return (
+    <div className={cn('relative h-36 w-36 shrink-0 sm:h-40 sm:w-40', meta.ring)}>
+      <svg viewBox="0 0 160 160" className="absolute inset-0 animate-spin [animation-duration:28s]">
+        <defs>
+          <path id={pathId} d="M80,80 m-62,0 a62,62 0 1,1 124,0 a62,62 0 1,1 -124,0" />
+        </defs>
+        <circle cx="80" cy="80" r="76" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeDasharray="2 5" />
+        <text className="fill-current font-mono text-[9.5px] uppercase tracking-[0.32em]">
+          <textPath href={`#${pathId}`}>
+            {`${meta.label} · Authentra dual consensus · Aptos · `}
+          </textPath>
+        </text>
+      </svg>
+      <div className="absolute inset-[30px] flex items-center justify-center rounded-full border border-line/15 bg-canvas">
+        <Icon className="h-10 w-10" />
+      </div>
+    </div>
+  );
+}
+
+const howItWorks = [
+  {
+    icon: Database,
+    title: 'Relational record',
+    body: 'Resolve the asset, its custodian and every ownership interval from PostgreSQL.',
+  },
+  {
+    icon: Link,
+    title: 'On-chain state',
+    body: 'Query the Aptos Move view function for the anchored asset resource.',
+  },
+  {
+    icon: Hash,
+    title: 'Digest parity',
+    body: 'Recompute the SHA-256 metadata digest and compare it with the ledger.',
+  },
+];
+
 export const VerifyPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -125,91 +187,41 @@ export const VerifyPage: React.FC = () => {
     performVerification(query);
   };
 
-  const getVerdictBadge = (verdict: VerificationData['verdict']) => {
-    switch (verdict) {
-      case 'VERIFIED':
-        return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="font-bold tracking-wider font-mono">VERIFIED</span>
-          </div>
-        );
-      case 'REVOKED':
-        return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
-            <XCircle className="w-5 h-5" />
-            <span className="font-bold tracking-wider font-mono">REVOKED</span>
-          </div>
-        );
-      case 'MISMATCH':
-        return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-            <AlertTriangle className="w-5 h-5" />
-            <span className="font-bold tracking-wider font-mono">STATE MISMATCH</span>
-          </div>
-        );
-      case 'BLOCKCHAIN_UNAVAILABLE':
-        return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400">
-            <Clock className="w-5 h-5" />
-            <span className="font-bold tracking-wider font-mono">RPC UNAVAILABLE</span>
-          </div>
-        );
-      case 'UNANCHORED':
-        return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/10 border border-sky-500/25 text-sky-400">
-            <Layers className="w-5 h-5" />
-            <span className="font-bold tracking-wider font-mono">OFF-CHAIN ONLY</span>
-          </div>
-        );
-      case 'NOT_FOUND':
-        return (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-400">
-            <XCircle className="w-5 h-5" />
-            <span className="font-bold tracking-wider font-mono">NOT FOUND</span>
-          </div>
-        );
-    }
-  };
+  const passed = result?.checks.filter((c) => c.passed).length ?? 0;
+  const total = result?.checks.length ?? 0;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto w-full text-left">
-      {/* Search Header */}
-      <div className="p-8 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-          <Shield className="w-3.5 h-3.5" />
-          <span>Task 11: Multi-Source Dual Verification Engine</span>
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Public Asset Verification</h1>
-        <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
-          Verify digital assets against PostgreSQL metadata, Aptos smart contract state, continuous ownership intervals, and cryptographic SHA-256 metadata anchors.
-        </p>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Dual-consensus verification"
+        title="Verify"
+        description="Cross-check any asset against the PostgreSQL registry, live Aptos contract state, its continuous ownership intervals and SHA-256 anchors — in one query."
+      />
 
-        {/* Input Bar */}
-        <form onSubmit={handleSearch} className="flex gap-2 pt-2">
+      {/* ── Query bar ───────────────────────────────────────────── */}
+      <div>
+        <form
+          onSubmit={handleSearch}
+          className="card flex flex-col gap-2 p-2 sm:flex-row sm:items-center"
+        >
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-fg-subtle" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter Asset Number (#101), Asset UUID, or Name..."
-              className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none font-mono transition-colors"
+              placeholder="Asset number (101), UUID, or name…"
+              aria-label="Asset to verify"
+              className="w-full bg-transparent py-3.5 pl-12 pr-4 text-[15px] text-fg outline-none placeholder:text-fg-subtle"
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading || !query.trim()}
-            className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-semibold text-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-          >
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-            <span>Verify</span>
+          <button type="submit" disabled={loading || !query.trim()} className="btn-primary btn-lg">
+            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            {loading ? 'Verifying…' : 'Verify asset'}
           </button>
         </form>
-
-        {/* Quick Example Tags */}
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-500 pt-1">
-          <span>Quick Lookup:</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2 px-2 text-xs text-fg-subtle">
+          <span>Try</span>
           {['101', '900'].map((ex) => (
             <button
               key={ex}
@@ -218,7 +230,7 @@ export const VerifyPage: React.FC = () => {
                 setQuery(ex);
                 performVerification(ex);
               }}
-              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 transition-colors"
+              className="h-7 rounded-md border border-line/10 px-2.5 font-mono text-[12px] text-fg-muted transition-colors hover:border-line/20 hover:text-fg"
             >
               #{ex}
             </button>
@@ -226,11 +238,10 @@ export const VerifyPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Error state */}
       {error && (
         <StatusAlert
           type="error"
-          title="Verification Failed"
+          title="Verification failed"
           message={error}
           onRetry={() => {
             if (query.trim()) performVerification(query.trim());
@@ -239,208 +250,246 @@ export const VerifyPage: React.FC = () => {
         />
       )}
 
-      {/* Loading state */}
       {loading && <DetailSkeleton />}
 
-      {/* Verification Result Card */}
+      {/* ── Idle state: explain the three checks ────────────────── */}
       {!loading && !result && !error && (
-        <EmptyState
-          icon={Shield}
-          title="Awaiting Verification Query"
-          description="Enter an asset number (#101), UUID, or name above to verify off-chain database records against live Aptos smart contracts."
-        />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {howItWorks.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <div key={step.title}>
+                <div className="card h-full space-y-6 rounded-xl p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-line/10 bg-fg/[0.04] text-fg">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="font-serif text-3xl italic text-fg-subtle">0{i + 1}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="font-medium text-fg">{step.title}</h3>
+                    <p className="text-sm leading-relaxed text-fg-muted">{step.body}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
+      {/* ── Result ──────────────────────────────────────────────── */}
       {result && (
         <div className="space-y-6">
-          {/* Main Verdict Banner */}
-          <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="text-xs font-mono text-slate-500 uppercase tracking-wider">
-                Verification Verdict • {new Date(result.verifiedAt).toLocaleString()}
+          <div>
+            <section className="card relative overflow-hidden rounded-xl p-6 sm:p-8">
+              <div className="flex flex-col items-center gap-8 text-center md:flex-row md:text-left">
+                <VerdictSeal verdict={result.verdict} />
+                <div className="min-w-0 flex-1 space-y-4">
+                  <div className="meta">Verdict · {formatDateTime(result.verifiedAt)}</div>
+                  <h2 className={cn('font-serif text-display-sm', verdictMeta[result.verdict].text)}>
+                    {verdictMeta[result.verdict].label}
+                  </h2>
+                  <p className="max-w-2xl text-[15px] leading-relaxed text-fg-muted">{result.verdictMessage}</p>
+                  {total > 0 && (
+                    <div className="mx-auto max-w-sm space-y-2 md:mx-0">
+                      <div className="flex justify-between text-xs text-fg-subtle">
+                        <span>Integrity checks</span>
+                        <span className="tabular text-fg">
+                          {passed}/{total} passed
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-fg/[0.07]">
+                        <div
+                          className={cn(
+                            'h-full rounded-full transition-all duration-1000 ease-silk',
+                            passed === total ? 'bg-ok' : 'bg-warn'
+                          )}
+                          style={{ width: `${(passed / total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-lg font-semibold text-white">{result.verdictMessage}</div>
-            </div>
-            <div>{getVerdictBadge(result.verdict)}</div>
+            </section>
           </div>
 
           {result.asset && (
             <>
-              {/* Asset & Custodian Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
-                {/* Asset Identity Card */}
-                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                    <Database className="w-4 h-4" />
-                    <span>METADATA REGISTRY</span>
-                  </div>
-                  <div className="space-y-2 text-slate-300">
-                    <div>
-                      <span className="text-slate-500">Asset:</span>{' '}
-                      <span className="font-semibold text-white font-sans text-sm">
-                        {result.asset.name} (#{result.asset.assetNumber})
-                      </span>
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <Panel title="Metadata registry" icon={Database}>
+                  <dl className="-my-2.5">
+                    <div className="kv">
+                      <dt>Asset</dt>
+                      <dd className="font-medium">
+                        {result.asset.name} <span className="font-mono text-fg-subtle">#{result.asset.assetNumber}</span>
+                      </dd>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Type:</span>{' '}
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                        {result.asset.assetType}
-                      </span>
+                    <div className="kv">
+                      <dt>Type</dt>
+                      <dd className="font-mono text-xs">{result.asset.assetType}</dd>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Lifecycle Status:</span>{' '}
-                      <span className="font-semibold text-emerald-400">{result.asset.status}</span>
+                    <div className="kv">
+                      <dt>Lifecycle</dt>
+                      <dd>
+                        <StatusBadge status={result.asset.status} />
+                      </dd>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Organization:</span> {result.asset.organization.name}
+                    <div className="kv">
+                      <dt>Organization</dt>
+                      <dd>{result.asset.organization.name}</dd>
                     </div>
-                    <div className="text-[11px] text-slate-500 break-all">
-                      <span className="text-slate-400">ID:</span> {result.asset.id}
+                    <div className="kv">
+                      <dt>ID</dt>
+                      <dd className="flex items-center justify-end gap-1 font-mono text-xs text-fg-muted">
+                        {truncateMiddle(result.asset.id, 8, 6)}
+                        <CopyButton value={result.asset.id} size="sm" label="Copy asset ID" />
+                      </dd>
                     </div>
-                  </div>
-                </div>
+                  </dl>
+                </Panel>
 
-                {/* Custodian & On-Chain State */}
-                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                    <Link className="w-4 h-4" />
-                    <span>APTOS BLOCKCHAIN ANCHOR</span>
-                  </div>
-                  <div className="space-y-2 text-slate-300">
-                    <div>
-                      <span className="text-slate-500">Network:</span>{' '}
-                      <span className="uppercase text-emerald-400">{result.blockchain.network}</span>
+                <Panel title="Aptos anchor" icon={Link}>
+                  <dl className="-my-2.5">
+                    <div className="kv">
+                      <dt>Network</dt>
+                      <dd className="font-mono text-xs uppercase">{result.blockchain.network}</dd>
                     </div>
-                    <div>
-                      <span className="text-slate-500">On-Chain State:</span>{' '}
-                      {result.blockchain.onChainRecord ? (
-                        <span className="text-emerald-400 font-semibold">Synchronized on Aptos</span>
-                      ) : (
-                        <span className="text-amber-400">Off-Chain Database Only</span>
-                      )}
+                    <div className="kv">
+                      <dt>On-chain state</dt>
+                      <dd>
+                        {result.blockchain.onChainRecord ? (
+                          <Badge tone="ok" dot>
+                            Synchronized
+                          </Badge>
+                        ) : (
+                          <Badge tone="warn" dot>
+                            Off-chain only
+                          </Badge>
+                        )}
+                      </dd>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Current Custodian:</span>{' '}
-                      {result.asset.currentOwner ? result.asset.currentOwner.name : 'Unassigned'}
+                    <div className="kv">
+                      <dt>Custodian</dt>
+                      <dd>{result.asset.currentOwner ? result.asset.currentOwner.name : 'Unassigned'}</dd>
                     </div>
-                    <div className="text-[11px] text-slate-500 break-all">
-                      <span className="text-slate-400">DID:</span> {result.asset.currentOwner?.did || 'None'}
+                    <div className="kv">
+                      <dt>Custodian DID</dt>
+                      <dd className="font-mono text-xs text-fg-muted">
+                        {truncateMiddle(result.asset.currentOwner?.did, 16, 6) || 'None'}
+                      </dd>
                     </div>
-                    <div className="text-[11px] text-slate-500 break-all">
-                      <span className="text-slate-400">Wallet:</span>{' '}
-                      {result.asset.currentOwner?.walletAddress || 'None'}
+                    <div className="kv">
+                      <dt>Wallet</dt>
+                      <dd className="font-mono text-xs text-fg-muted">
+                        {truncateMiddle(result.asset.currentOwner?.walletAddress, 8, 6) || 'None'}
+                      </dd>
                     </div>
-                  </div>
-                </div>
+                  </dl>
+                </Panel>
               </div>
 
-              {/* Cryptographic Proof & Integrity Checklist */}
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 font-mono text-xs">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                    <Hash className="w-4 h-4" />
-                    <span>CRYPTOGRAPHIC INTEGRITY CHECKS</span>
-                  </div>
-                  <div className="text-slate-500 text-[11px]">
-                    SHA-256 Metadata Hash:{' '}
-                    <span className="text-slate-300">
-                      {result.integrity.computedMetadataHash.substring(0, 16)}...
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Panel
+                title="Cryptographic integrity"
+                icon={Hash}
+                action={
+                  <span className="hidden items-center gap-1 font-mono text-[11px] text-fg-subtle sm:flex">
+                    SHA-256 {truncateMiddle(result.integrity.computedMetadataHash, 10, 6)}
+                    <CopyButton value={result.integrity.computedMetadataHash} size="sm" label="Copy digest" />
+                  </span>
+                }
+              >
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {result.checks.map((c, i) => (
-                    <div
+                    <li
                       key={i}
-                      className={`p-3.5 rounded-xl border flex items-start gap-3 ${
-                        c.passed
-                          ? 'bg-emerald-500/5 border-emerald-500/20 text-slate-300'
-                          : 'bg-red-500/5 border-red-500/20 text-red-300'
-                      }`}
+                      className={cn(
+                        'flex items-start gap-3 rounded-lg border p-4',
+                        c.passed ? 'border-ok/15 bg-ok/[0.05]' : 'border-bad/20 bg-bad/[0.06]'
+                      )}
                     >
                       {c.passed ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" />
                       ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-bad" />
                       )}
-                      <div>
-                        <div className="font-semibold text-white">{c.name}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">{c.message}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-fg">{c.name}</div>
+                        <div className="mt-0.5 text-xs leading-relaxed text-fg-muted">{c.message}</div>
                       </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              </Panel>
 
-              {/* Ownership History Intervals */}
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 font-mono text-xs">
-                <div className="flex items-center gap-2 text-emerald-400 font-semibold border-b border-slate-800 pb-3">
-                  <History className="w-4 h-4" />
-                  <span>CUSTODY & OWNERSHIP INTERVAL CHAIN</span>
-                </div>
-
-                <div className="space-y-3">
-                  {result.ownershipHistory.map((rec) => (
-                    <div
-                      key={rec.intervalNumber}
-                      className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-emerald-400 font-semibold">INTERVAL #{rec.intervalNumber}</span>
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                          {rec.status}
+              <Panel title="Custody interval chain" icon={History}>
+                {result.ownershipHistory.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-fg-subtle">No custody intervals recorded.</p>
+                ) : (
+                  <ol className="relative space-y-3 pl-7">
+                    <span className="absolute bottom-2 left-[9px] top-2 w-px bg-line/15" />
+                    {result.ownershipHistory.map((rec) => (
+                      <li key={rec.intervalNumber} className="relative">
+                        <span
+                          className={cn(
+                            'absolute -left-7 top-4 flex h-[19px] w-[19px] items-center justify-center rounded-full border bg-canvas',
+                            rec.validTo ? 'border-line/15' : 'border-accent/50'
+                          )}
+                        >
+                          <span className={cn('h-2 w-2 rounded-full', rec.validTo ? 'bg-fg-subtle' : 'bg-accent')} />
                         </span>
-                      </div>
-                      <div className="text-slate-300">
-                        Custodian: <span className="font-semibold text-white">{rec.custodianName}</span> (
-                        {rec.custodianDid.slice(0, 24)}...)
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/50">
-                        <span>From: {new Date(rec.validFrom).toLocaleString()}</span>
-                        <span>To: {rec.validTo ? new Date(rec.validTo).toLocaleString() : 'Present (Active)'}</span>
-                      </div>
-                      {rec.notes && <div className="text-slate-400 italic text-[11px]">"{rec.notes}"</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Transactions Timeline */}
-              {result.blockchain.transactions.length > 0 && (
-                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 font-mono text-xs">
-                  <div className="flex items-center gap-2 text-emerald-400 font-semibold border-b border-slate-800 pb-3">
-                    <ExternalLink className="w-4 h-4" />
-                    <span>ON-CHAIN TRANSACTION RECORD</span>
-                  </div>
-                  <div className="space-y-2">
-                    {result.blockchain.transactions.map((tx) => (
-                      <div
-                        key={tx.txHash}
-                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                      >
-                        <div>
-                          <div className="font-semibold text-white">{tx.txType}</div>
-                          <div className="text-[11px] text-slate-500 truncate max-w-md">Hash: {tx.txHash}</div>
+                        <div className="well space-y-1.5 p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="meta">Interval #{rec.intervalNumber}</span>
+                            <StatusBadge status={rec.status} />
+                          </div>
+                          <div className="text-sm text-fg">
+                            <span className="font-medium">{rec.custodianName}</span>{' '}
+                            <span className="font-mono text-[11px] text-fg-subtle">
+                              {truncateMiddle(rec.custodianDid, 20, 6)}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1 border-t border-line/[0.06] pt-2 text-xs text-fg-muted sm:flex-row sm:justify-between">
+                            <span>From {formatDateTime(rec.validFrom)}</span>
+                            <span>{rec.validTo ? `To ${formatDateTime(rec.validTo)}` : 'Present · active'}</span>
+                          </div>
+                          {rec.notes && <p className="font-serif text-[15px] italic text-fg-muted">“{rec.notes}”</p>}
                         </div>
-                        <div className="flex items-center gap-3 text-[11px]">
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            {tx.status}
-                          </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </Panel>
+
+              {result.blockchain.transactions.length > 0 && (
+                <Panel title="On-chain transaction record" icon={ExternalLink} padded={false}>
+                  <ul className="divide-y divide-line/[0.06]">
+                    {result.blockchain.transactions.map((tx) => (
+                      <li
+                        key={tx.txHash}
+                        className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-fg">{tx.txType}</div>
+                          <div className="truncate font-mono text-[11px] text-fg-subtle">
+                            {truncateMiddle(tx.txHash, 18, 10)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge tone="ok">{tx.status}</Badge>
                           <a
                             href={`https://explorer.aptoslabs.com/txn/${tx.txHash}?network=testnet`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-emerald-400 hover:underline inline-flex items-center gap-1"
+                            className="btn-secondary btn-sm"
                           >
-                            <span>Explorer</span>
-                            <ExternalLink className="w-3 h-3" />
+                            Explorer <ExternalLink className="h-3 w-3" />
                           </a>
                         </div>
-                      </div>
+                      </li>
                     ))}
-                  </div>
-                </div>
+                  </ul>
+                </Panel>
               )}
             </>
           )}

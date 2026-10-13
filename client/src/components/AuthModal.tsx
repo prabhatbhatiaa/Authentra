@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, ArrowRight, AlertCircle, CheckCircle2, Building, UserPlus, KeyRound } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Building2, KeyRound, Lock, Mail, UserPlus } from 'lucide-react';
 import { authClient } from '../services/auth.service';
 import { UserProfile } from '../types/auth.types';
+import { StatusAlert } from './StatusAlert';
+import { LogoMark } from './ui/Logo';
+import { cn } from '../lib/cn';
 
 interface AuthModalProps {
   initialMode?: 'login' | 'register';
   onSuccess: (user: UserProfile) => void;
+}
+
+const demoAccounts = [
+  { label: 'Admin', email: 'admin@authentra.io', password: 'Admin@Authentra2026!' },
+  { label: 'Manager', email: 'manager@authentra.io', password: 'Admin@Authentra2026!' },
+  { label: 'User', email: 'user@authentra.io', password: 'User@Authentra2026!' },
+];
+
+function IconInput({
+  icon: Icon,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { icon: React.ComponentType<{ className?: string }> }) {
+  return (
+    <div className="relative">
+      <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" />
+      <input {...props} className={cn('input pl-10', props.className)} />
+    </div>
+  );
 }
 
 export function AuthModal({ initialMode = 'login', onSuccess }: AuthModalProps) {
@@ -30,7 +52,7 @@ export function AuthModal({ initialMode = 'login', onSuccess }: AuthModalProps) 
         const response = await authClient.login({ email, password });
         localStorage.setItem('authentra_token', response.data.token);
         localStorage.setItem('authentra_user', JSON.stringify(response.data.user));
-        setSuccessMsg('Session authenticated. Loading workspace...');
+        setSuccessMsg('Session authenticated. Loading workspace…');
         setTimeout(() => {
           onSuccess(response.data.user);
         }, 500);
@@ -44,7 +66,7 @@ export function AuthModal({ initialMode = 'login', onSuccess }: AuthModalProps) 
         });
         localStorage.setItem('authentra_token', response.data.token);
         localStorage.setItem('authentra_user', JSON.stringify(response.data.user));
-        setSuccessMsg('Account registered & DID derived. Initializing...');
+        setSuccessMsg('Account registered & DID derived. Initializing…');
         setTimeout(() => {
           onSuccess(response.data.user);
         }, 500);
@@ -63,189 +85,181 @@ export function AuthModal({ initialMode = 'login', onSuccess }: AuthModalProps) 
     setError(null);
   };
 
+  const switchMode = (next: 'login' | 'register') => {
+    setMode(next);
+    setError(null);
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto p-6 sm:p-7 bg-white dark:bg-[#101014] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl font-sans">
-      {/* Header */}
-      <div className="text-center space-y-2 mb-6">
-        <div className="inline-flex p-2 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 mb-1">
-          <Shield className="w-5 h-5" />
-        </div>
-        <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          {mode === 'login' ? 'Authenticate Session' : 'Initialize Enterprise Account'}
+    <div className="relative overflow-hidden px-6 pb-7 pt-8 sm:px-8 sm:pt-9">
+      <div className="relative mb-7 space-y-3 text-center">
+        <LogoMark className="mx-auto h-8 w-8" />
+        <h2 className="font-serif text-[34px] leading-none tracking-[-0.02em] text-fg">
+          {mode === 'login' ? 'Welcome back' : 'Create your workspace'}
         </h2>
-        <p className="text-xs font-mono text-zinc-500">
+        <p className="text-sm text-fg-muted">
           {mode === 'login'
-            ? 'Cryptographic identity & RBAC verification'
-            : 'Automated DID derivation & Aptos wallet binding'}
+            ? 'Authenticate with your cryptographic identity.'
+            : 'We derive your W3C DID and bind an Aptos wallet automatically.'}
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-5 font-mono text-xs">
-        <button
-          type="button"
-          onClick={() => {
-            setMode('login');
-            setError(null);
-          }}
-          className={`flex-1 py-2 text-center font-medium border-b-2 transition-all ${
-            mode === 'login'
-              ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold'
-              : 'border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
-          }`}
-        >
-          LOGIN
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode('register');
-            setError(null);
-          }}
-          className={`flex-1 py-2 text-center font-medium border-b-2 transition-all ${
-            mode === 'register'
-              ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold'
-              : 'border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
-          }`}
-        >
-          REGISTER
-        </button>
+      {/* Segmented control */}
+      <div className="relative mb-6 grid grid-cols-2 rounded-lg border border-line/10 p-0.5 text-sm">
+        {(['login', 'register'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => switchMode(m)}
+            className={cn(
+              'relative h-8 rounded-md font-medium transition-colors duration-150',
+              mode === m ? 'text-canvas' : 'text-fg-muted hover:text-fg'
+            )}
+          >
+            {mode === m && (
+              <motion.span
+                layoutId="auth-mode"
+                className="absolute inset-0 rounded-md bg-fg"
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              />
+            )}
+            <span className="relative">{m === 'login' ? 'Sign in' : 'Create account'}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Error & Success Feedback */}
-      {error && (
-        <div className="mb-4 p-3 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs flex items-start gap-2 font-mono">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-          <span>{error}</span>
-        </div>
-      )}
+      <div className="space-y-3">
+        {error && <StatusAlert type="error" message={error} onDismiss={() => setError(null)} />}
+        {successMsg && <StatusAlert type="success" message={successMsg} />}
+      </div>
 
-      {successMsg && (
-        <div className="mb-4 p-3 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs flex items-start gap-2 font-mono">
-          <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-3.5">
-        {mode === 'register' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-mono text-zinc-500 mb-1">FIRST NAME</label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="e.g. Alice"
-                  className="w-full px-3 py-1.5 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-                />
+      <form onSubmit={handleSubmit} className={cn('space-y-3.5', (error || successMsg) && 'mt-4')}>
+        <AnimatePresence initial={false}>
+          {mode === 'register' && (
+            <motion.div
+              key="register-fields"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="space-y-3.5 overflow-hidden"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label" htmlFor="auth-first">
+                    First name
+                  </label>
+                  <input
+                    id="auth-first"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Alice"
+                    autoComplete="given-name"
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="auth-last">
+                    Last name
+                  </label>
+                  <input
+                    id="auth-last"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Vance"
+                    autoComplete="family-name"
+                    className="input"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-[11px] font-mono text-zinc-500 mb-1">LAST NAME</label>
-                <input
+                <label className="label" htmlFor="auth-org">
+                  Organization <span className="text-fg-subtle">(optional)</span>
+                </label>
+                <IconInput
+                  id="auth-org"
+                  icon={Building2}
                   type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="e.g. Vance"
-                  className="w-full px-3 py-1.5 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  placeholder="Authentra Enterprise Trust"
+                  autoComplete="organization"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1">
-                <Building className="w-3 h-3" /> ORGANIZATION NAME (OPTIONAL)
-              </label>
-              <input
-                type="text"
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-                placeholder="e.g. Authentra Enterprise Trust"
-                className="w-full px-3 py-1.5 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-            </div>
-          </>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div>
-          <label className="block text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1">
-            <Mail className="w-3 h-3" /> EMAIL IDENTIFIER
+          <label className="label" htmlFor="auth-email">
+            Email
           </label>
-          <input
+          <IconInput
+            id="auth-email"
+            icon={Mail}
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="admin@authentra.io"
-            className="w-full px-3 py-2 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            autoComplete="email"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1">
-            <Lock className="w-3 h-3" /> PASSWORD KEY
+          <label className="label" htmlFor="auth-password">
+            Password
           </label>
-          <input
+          <IconInput
+            id="auth-password"
+            icon={Lock}
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••••"
-            className="w-full px-3 py-2 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full mt-2 btn-primary py-2.5 px-4 font-mono text-xs flex items-center justify-center gap-2"
-        >
+        <button type="submit" disabled={loading} className="btn-primary btn-lg mt-2 w-full">
           {loading ? (
-            <span className="animate-pulse">VERIFYING WITH ARGON2ID...</span>
+            <span className="animate-pulse">Verifying with Argon2id…</span>
           ) : mode === 'login' ? (
             <>
-              <span>AUTHENTICATE SESSION</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              Sign in <ArrowRight className="h-4 w-4" />
             </>
           ) : (
             <>
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>REGISTER & DERIVE DID</span>
+              <UserPlus className="h-4 w-4" /> Register & derive DID
             </>
           )}
         </button>
       </form>
 
-      {/* Quick Seed Fill Helpers */}
-      <div className="mt-5 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-500 mb-2">
-          <KeyRound className="w-3 h-3" />
-          <span>QUICK SEED CREDENTIALS:</span>
+      {/* Seeded demo credentials */}
+      <div className="mt-6 border-t border-line/[0.07] pt-5">
+        <div className="meta mb-3 flex items-center justify-center gap-1.5">
+          <KeyRound className="h-3 w-3" /> Demo accounts
         </div>
-        <div className="grid grid-cols-3 gap-2 font-mono text-[10px]">
-          <button
-            type="button"
-            onClick={() => handleQuickFill('admin@authentra.io', 'Admin@Authentra2026!')}
-            className="p-1.5 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 text-zinc-700 dark:text-zinc-300 transition-colors"
-          >
-            Admin
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill('manager@authentra.io', 'Admin@Authentra2026!')}
-            className="p-1.5 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 text-zinc-700 dark:text-zinc-300 transition-colors"
-          >
-            Manager
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill('user@authentra.io', 'User@Authentra2026!')}
-            className="p-1.5 rounded bg-zinc-50 dark:bg-[#070709] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 text-zinc-700 dark:text-zinc-300 transition-colors"
-          >
-            User
-          </button>
+        <div className="grid grid-cols-3 gap-2">
+          {demoAccounts.map((acc) => (
+            <button
+              key={acc.label}
+              type="button"
+              onClick={() => handleQuickFill(acc.email, acc.password)}
+              className={cn(
+                'h-8 rounded-md border px-2 text-[13px] transition-colors duration-150',
+                email === acc.email
+                  ? 'border-fg/40 bg-fg/[0.05] text-fg'
+                  : 'border-line/10 bg-fg/[0.03] text-fg-muted hover:border-line/20 hover:text-fg'
+              )}
+            >
+              {acc.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

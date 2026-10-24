@@ -1,6 +1,17 @@
 import { Boxes, CheckCheck, FileText, Fingerprint, LayoutDashboard, Shield, type LucideIcon } from 'lucide-react';
 
-export type TabId = 'dashboard' | 'identity' | 'assets' | 'verify' | 'audit' | 'admin';
+export type TabId =
+  | 'landing'
+  | 'dashboard'
+  | 'identity'
+  | 'assets'
+  | 'verify'
+  | 'audit'
+  | 'admin'
+  | 'privacy'
+  | 'terms'
+  | 'security'
+  | 'compliance';
 
 export interface NavItem {
   id: TabId;
@@ -8,7 +19,19 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-export const TAB_IDS: TabId[] = ['dashboard', 'identity', 'assets', 'verify', 'audit', 'admin'];
+export const TAB_IDS: TabId[] = [
+  'landing',
+  'dashboard',
+  'identity',
+  'assets',
+  'verify',
+  'audit',
+  'admin',
+  'privacy',
+  'terms',
+  'security',
+  'compliance',
+];
 
 export function isTabId(value: string): value is TabId {
   return (TAB_IDS as string[]).includes(value);

@@ -39,7 +39,7 @@ export function CapabilitiesSection() {
   return (
     <section id="capabilities" data-scene="lattice" data-x="0" data-y="0" data-scale="1.15" data-opacity="0.2" data-rx="0.6" className="relative">
       <SectionLabel index="04" label="Platform" />
-      <div className="gutter grid grid-cols-12 gap-y-6 pb-14 pt-20 lg:pt-28">
+      <div className="gutter grid grid-cols-12 gap-y-4 pb-10 pt-14 lg:pt-20">
         <Reveal className="col-span-12 lg:col-span-8">
           <h2 className="font-serif text-display-lg text-fg">Everything an institution needs to prove custody.</h2>
         </Reveal>
@@ -50,7 +50,7 @@ export function CapabilitiesSection() {
             key={c.title}
             delay={(i % 3) * 0.05}
             className={cn(
-              'group gutter flex min-h-[300px] flex-col justify-between gap-10 border-b border-line/10 bg-canvas/80 py-8 transition-colors duration-300 hover:bg-surface',
+              'group gutter flex min-h-[260px] flex-col justify-between gap-8 border-b border-line/10 bg-canvas/80 py-6 transition-colors duration-300 hover:bg-surface',
               // Vertical hairlines: 2 columns on tablet, 3 on desktop.
               i % 2 === 1 && 'md:max-xl:border-l',
               i % 3 !== 0 && 'xl:border-l'

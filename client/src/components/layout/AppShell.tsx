@@ -73,7 +73,7 @@ export function AppShell({
       {/* ── Desktop sidebar ─────────────────────────────────── */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-line/[0.08] bg-canvas lg:flex">
         <div className="flex h-14 items-center border-b border-line/[0.08] px-5">
-          <Logo onClick={() => onNavigate('dashboard')} />
+          <Logo onClick={() => onNavigate('landing')} />
         </div>
 
         <div className="border-b border-line/[0.08] px-5 py-4">
@@ -133,7 +133,7 @@ export function AppShell({
         <div className="gutter flex h-14 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="lg:hidden">
-              <Logo onClick={() => onNavigate('dashboard')} />
+              <Logo onClick={() => onNavigate('landing')} />
             </div>
             <div className="hidden min-w-0 items-center gap-2 text-sm lg:flex">
               <span className="truncate text-fg-subtle">{user.organization?.name ?? 'Workspace'}</span>

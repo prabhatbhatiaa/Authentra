@@ -16,9 +16,9 @@ export function ManifestoSection() {
   const words = statement.split(' ');
 
   return (
-    <section data-scene="sphere" data-x="0.66" data-y="0" data-scale="1" data-opacity="0.5" data-rx="0.5" className="relative">
+    <section data-scene="torus" data-x="0.58" data-y="0" data-scale="0.88" data-opacity="0.6" data-rx="0.52" className="relative">
       <SectionLabel index="01" label="Thesis" />
-      <div className="gutter grid grid-cols-12 py-24 lg:py-40">
+      <div className="gutter grid grid-cols-12 py-16 lg:py-28">
         <p
           ref={ref}
           className="col-span-12 font-serif text-[clamp(2.2rem,5.4vw,5.6rem)] leading-[1.02] tracking-[-0.025em] text-fg lg:col-span-10"

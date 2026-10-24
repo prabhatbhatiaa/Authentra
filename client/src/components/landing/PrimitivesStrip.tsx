@@ -35,15 +35,15 @@ export function PrimitivesStrip() {
         <Reveal
           key={p.n}
           delay={i * 0.05}
-          className={`gutter flex min-h-[260px] flex-col justify-between gap-10 border-line/10 bg-canvas/70 py-7 transition-colors duration-300 hover:bg-fg/[0.03] ${
+          className={`gutter flex min-h-[220px] flex-col justify-between gap-8 border-line/10 bg-canvas/70 py-6 transition-colors duration-300 hover:bg-fg/[0.03] ${
             i > 0 ? 'border-t sm:border-t-0' : ''
           } ${i % 2 === 1 ? 'sm:border-l' : ''} ${i >= 2 ? 'sm:border-t lg:border-t-0' : ''} ${i > 0 ? 'lg:border-l' : ''}`}
         >
           <span className="meta">{p.n}</span>
-          <div className="space-y-3">
-            <h3 className="font-serif text-[40px] leading-none text-fg">{p.title}</h3>
+          <div className="space-y-2.5">
+            <h3 className="font-serif text-[36px] leading-none text-fg">{p.title}</h3>
             <p className="max-w-xs text-[15px] leading-relaxed text-fg-muted">{p.body}</p>
-            <p className="meta pt-1 text-fg">{p.detail}</p>
+            <p className="meta pt-0.5 text-fg">{p.detail}</p>
           </div>
         </Reveal>
       ))}

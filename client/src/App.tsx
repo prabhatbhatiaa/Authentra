@@ -16,11 +16,19 @@ const AssetsPage = lazy(() => import('./pages/AssetsPage').then((m) => ({ defaul
 const VerifyPage = lazy(() => import('./pages/VerifyPage').then((m) => ({ default: m.VerifyPage })));
 const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })));
 const AdminPortalPage = lazy(() => import('./pages/AdminPortalPage').then((m) => ({ default: m.AdminPortalPage })));
+const LegalPage = lazy(() => import('./pages/LegalPage').then((m) => ({ default: m.LegalPage })));
 
-/** Read the active console tab from the URL hash (`#/assets`). */
+/** Read the active console tab or legal page from the URL hash (`#/assets` or `#/privacy`). */
 function tabFromHash(): TabId {
   const raw = window.location.hash.replace(/^#\/?/, '');
+  if (!raw || raw === 'landing' || raw === 'home') return 'landing';
   return isTabId(raw) ? raw : 'dashboard';
+}
+
+const LEGAL_TAB_IDS = ['privacy', 'terms', 'security', 'compliance'] as const;
+type LegalTabId = (typeof LEGAL_TAB_IDS)[number];
+function isLegalTab(tab: string): tab is LegalTabId {
+  return (LEGAL_TAB_IDS as readonly string[]).includes(tab);
 }
 
 function SessionSplash({ label = 'Verifying session' }: { label?: string }) {
@@ -110,7 +118,11 @@ export function App() {
   }, []);
 
   const navigate = useCallback((tab: TabId) => {
-    if (`#/${tab}` !== window.location.hash) {
+    if (tab === 'landing') {
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    } else if (`#/${tab}` !== window.location.hash) {
       window.location.hash = `/${tab}`;
     }
     setCurrentTab(tab);
@@ -121,7 +133,7 @@ export function App() {
     await authClient.logout();
     setUser(null);
     history.replaceState(null, '', window.location.pathname + window.location.search);
-    setCurrentTab('dashboard');
+    setCurrentTab('landing');
     refreshHealth();
   };
 
@@ -131,11 +143,42 @@ export function App() {
     return <SessionSplash />;
   }
 
-  // Unauthenticated visitors see the marketing landing page
-  if (!user) {
+  // If the visitor or user navigates to a legal document (#/privacy, #/terms, etc.)
+  if (isLegalTab(currentTab)) {
+    return (
+      <Suspense fallback={<SessionSplash label="Loading document" />}>
+        <LegalPage
+          initialDoc={currentTab}
+          onGoHome={() => {
+            navigate('landing');
+          }}
+          onGoToDashboard={user ? () => navigate('dashboard') : undefined}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+          onOpenAuth={
+            !user
+              ? (mode) => {
+                  navigate('landing');
+                  // Quick tick to allow LandingPage to mount and open auth
+                  setTimeout(() => {
+                    const evt = new CustomEvent('authentra_open_auth', { detail: { mode } });
+                    window.dispatchEvent(evt);
+                  }, 50);
+                }
+              : undefined
+          }
+        />
+      </Suspense>
+    );
+  }
+
+  // Marketing landing page (for visitors or users navigating to home)
+  if (currentTab === 'landing' || !user) {
     return (
       <Suspense fallback={<SessionSplash label="Loading" />}>
         <LandingPage
+          user={user}
+          onGoToDashboard={() => navigate('dashboard')}
           onLoginSuccess={(loggedUser) => {
             setUser(loggedUser);
             navigate('dashboard');

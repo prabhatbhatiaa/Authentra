@@ -6,6 +6,7 @@ import { ThemeToggle } from '../ui/ThemeToggle';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { scrollToTop } from '../../lib/smoothScroll';
 import { cn } from '../../lib/cn';
+import { UserProfile } from '../../types/auth.types';
 
 export interface LandingLink {
   label: string;
@@ -14,6 +15,8 @@ export interface LandingLink {
 }
 
 interface LandingNavProps {
+  user?: UserProfile | null;
+  onGoToDashboard?: () => void;
   links: LandingLink[];
   onNavigate: (id: string) => void;
   onOpenAuth: (mode: 'login' | 'register') => void;
@@ -21,7 +24,15 @@ interface LandingNavProps {
   onToggleTheme: () => void;
 }
 
-export function LandingNav({ links, onNavigate, onOpenAuth, isDark, onToggleTheme }: LandingNavProps) {
+export function LandingNav({
+  user,
+  onGoToDashboard,
+  links,
+  onNavigate,
+  onOpenAuth,
+  isDark,
+  onToggleTheme,
+}: LandingNavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   useBodyScrollLock(menuOpen);
@@ -39,6 +50,14 @@ export function LandingNav({ links, onNavigate, onOpenAuth, isDark, onToggleThem
     else if (link.id) onNavigate(link.id);
   };
 
+  const handleHomeClick = () => {
+    setMenuOpen(false);
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    scrollToTop();
+  };
+
   return (
     <>
       <header
@@ -50,7 +69,7 @@ export function LandingNav({ links, onNavigate, onOpenAuth, isDark, onToggleThem
         )}
       >
         <div className="gutter flex h-16 items-center justify-between gap-6">
-          <Logo onClick={scrollToTop} />
+          <Logo onClick={handleHomeClick} />
 
           <nav aria-label="Sections" className="hidden items-center gap-8 md:flex">
             {links.map((link) => (
@@ -67,12 +86,25 @@ export function LandingNav({ links, onNavigate, onOpenAuth, isDark, onToggleThem
 
           <div className="flex items-center gap-2">
             <ThemeToggle isDark={isDark} onToggle={onToggleTheme} className="border-transparent" />
-            <button type="button" onClick={() => onOpenAuth('login')} className="btn-ghost btn-sm hidden md:inline-flex">
-              Sign in
-            </button>
-            <button type="button" onClick={() => onOpenAuth('register')} className="btn-primary btn-sm hidden md:inline-flex">
-              Get started <ArrowRight className="arrow h-3.5 w-3.5" />
-            </button>
+            {user ? (
+              <button
+                type="button"
+                onClick={onGoToDashboard}
+                className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              >
+                <span>Open Console</span>
+                <ArrowRight className="arrow h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => onOpenAuth('login')} className="btn-ghost btn-sm hidden md:inline-flex">
+                  Sign in
+                </button>
+                <button type="button" onClick={() => onOpenAuth('register')} className="btn-primary btn-sm hidden md:inline-flex">
+                  Get started <ArrowRight className="arrow h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -122,28 +154,41 @@ export function LandingNav({ links, onNavigate, onOpenAuth, isDark, onToggleThem
                 </motion.button>
               ))}
             </nav>
-            <div className="grid grid-cols-2 gap-2">
+            {user ? (
               <button
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  onOpenAuth('login');
+                  onGoToDashboard?.();
                 }}
-                className="btn-secondary btn-lg"
+                className="btn-primary btn-lg w-full"
               >
-                Sign in
+                Open Console
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onOpenAuth('register');
-                }}
-                className="btn-primary btn-lg"
-              >
-                Get started
-              </button>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenAuth('login');
+                  }}
+                  className="btn-secondary btn-lg"
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onOpenAuth('register');
+                  }}
+                  className="btn-primary btn-lg"
+                >
+                  Get started
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -19,6 +19,8 @@ import { scrollToId, startSmoothScroll, stopSmoothScroll } from '../lib/smoothSc
 const ParticleField = lazy(() => import('../components/three/ParticleField').then((m) => ({ default: m.ParticleField })));
 
 interface LandingPageProps {
+  user?: UserProfile | null;
+  onGoToDashboard?: () => void;
   onLoginSuccess: (user: UserProfile) => void;
   isDark: boolean;
   onToggleTheme: () => void;
@@ -30,7 +32,13 @@ const manifestoPoints = [
   ['W3C DIDs & Argon2id', 'Standardized identity derivation with memory-hard RFC 9106 security.'],
 ];
 
-export function LandingPage({ onLoginSuccess, isDark, onToggleTheme }: LandingPageProps) {
+export function LandingPage({
+  user,
+  onGoToDashboard,
+  onLoginSuccess,
+  isDark,
+  onToggleTheme,
+}: LandingPageProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showManifesto, setShowManifesto] = useState(false);
@@ -54,6 +62,16 @@ export function LandingPage({ onLoginSuccess, isDark, onToggleTheme }: LandingPa
       .catch(() => {});
   }, []);
 
+  // Support programmatic auth modal triggers
+  useEffect(() => {
+    const onTrigger = (e: Event) => {
+      const custom = e as CustomEvent<{ mode?: 'login' | 'register' }>;
+      openAuth(custom.detail?.mode ?? 'login');
+    };
+    window.addEventListener('authentra_open_auth', onTrigger);
+    return () => window.removeEventListener('authentra_open_auth', onTrigger);
+  }, []);
+
   const openAuth = (mode: 'login' | 'register') => {
     setAuthMode(mode);
     setShowAuthModal(true);
@@ -74,6 +92,8 @@ export function LandingPage({ onLoginSuccess, isDark, onToggleTheme }: LandingPa
       </Suspense>
 
       <LandingNav
+        user={user}
+        onGoToDashboard={onGoToDashboard}
         links={navLinks}
         onNavigate={scrollToId}
         onOpenAuth={openAuth}

@@ -26,21 +26,21 @@ export function ArchitectureSection() {
   return (
     <section id="architecture" data-scene="layers" data-x="0.5" data-y="0" data-scale="0.82" data-rx="0.62" className="relative">
       <SectionLabel index="02" label="Architecture" />
-      <div className="gutter grid grid-cols-12 gap-y-14 py-20 lg:min-h-[120vh] lg:py-28">
+      <div className="gutter grid grid-cols-12 gap-y-10 py-14 lg:min-h-[105vh] lg:py-20">
         <div className="col-span-12 lg:col-span-5">
           <Reveal>
             <h2 className="font-serif text-display-lg text-fg">Two engines. One verifiable truth.</h2>
           </Reveal>
           <Reveal delay={0.05}>
-            <p className="mt-6 max-w-md text-[17px] leading-relaxed text-fg-muted">
+            <p className="mt-4 max-w-md text-[16px] leading-relaxed text-fg-muted">
               Applications read from a relational core at database speed. Aptos Move bytecode guarantees that what
               was recorded is exactly what happened.
             </p>
           </Reveal>
 
-          <ol className="mt-14 border-t border-line/10">
+          <ol className="mt-10 border-t border-line/10">
             {steps.map((s, i) => (
-              <Reveal as="li" key={s.n} delay={i * 0.06} className="grid grid-cols-[2.5rem_1fr] border-b border-line/10 py-6">
+              <Reveal as="li" key={s.n} delay={i * 0.06} className="grid grid-cols-[2.5rem_1fr] border-b border-line/10 py-5">
                 <span className="meta pt-1.5">{s.n}</span>
                 <div className="space-y-2">
                   <h3 className="text-lg font-medium tracking-[-0.01em] text-fg">{s.title}</h3>

@@ -5,11 +5,11 @@ interface AnimatedNumberProps {
   value: number | null | undefined;
   className?: string;
   duration?: number;
-  /** Rendered when the value is unknown. */
+  // Rendered when the value is unknown.
   fallback?: string;
 }
 
-/** Counts up to `value` the first time it scrolls into view. */
+// Counts up to `value` the first time it scrolls into view.
 export function AnimatedNumber({ value, className, duration = 1.4, fallback = '—' }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: '-20px' });

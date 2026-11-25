@@ -2,9 +2,7 @@ import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
 
-/**
- * Hash password securely with Argon2id
- */
+// Hash password with Argon2id
 export async function hashPassword(password: string): Promise<string> {
   return argon2.hash(password, {
     type: argon2.argon2id,
@@ -14,9 +12,7 @@ export async function hashPassword(password: string): Promise<string> {
   });
 }
 
-/**
- * Verify password against Argon2id hash
- */
+// Verify password against Argon2id hash
 export async function verifyPassword(hash: string, plain: string): Promise<boolean> {
   try {
     return await argon2.verify(hash, plain);
@@ -34,9 +30,7 @@ export interface AuthTokenPayload {
   roles: string[];
 }
 
-/**
- * Sign JWT session token
- */
+// Sign JWT session token
 export function signToken(payload: AuthTokenPayload): string {
   return jwt.sign(payload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn as any,
@@ -45,9 +39,7 @@ export function signToken(payload: AuthTokenPayload): string {
   });
 }
 
-/**
- * Verify and decode JWT session token
- */
+// Verify and decode JWT session token
 export function verifyToken(token: string): AuthTokenPayload | null {
   try {
     return jwt.verify(token, config.jwt.secret, {

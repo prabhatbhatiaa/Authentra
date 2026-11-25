@@ -3,10 +3,7 @@ import { verificationController } from '../controllers/verification.controller.j
 
 const router = Router();
 
-/**
- * GET /api/verification/verify/:identifier
- * Public endpoint for verifying digital assets against PostgreSQL & Aptos Testnet
- */
+// Public asset verification against DB and Aptos Testnet
 router.get('/verify/:identifier', (req, res, next) =>
   verificationController.verify(req, res, next)
 );

@@ -6,7 +6,7 @@ interface LogoProps {
   onClick?: () => void;
 }
 
-/** Authentra mark: a seal ring around a signal point — an identity anchored to a ledger. */
+// Seal ring around a signal point.
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={cn('h-6 w-6', className)}>

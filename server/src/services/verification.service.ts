@@ -77,10 +77,7 @@ export interface VerificationResult {
 }
 
 export class VerificationService {
-  /**
-   * Universal Verification Engine:
-   * Accepts assetId (UUID or string) or assetNumber (e.g. 101, AST-101, #101)
-   */
+  // Verify asset by assetId (UUID/string) or assetNumber (e.g. 101, AST-101, #101)
   async verifyAsset(identifier: string): Promise<VerificationResult> {
     const verifiedAt = new Date().toISOString();
     const cleanId = identifier.trim();

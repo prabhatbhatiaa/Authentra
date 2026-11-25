@@ -2,9 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { adminService } from '../services/admin.service.js';
 
 export class AdminController {
-  /**
-   * GET /api/admin/users
-   */
+  // GET /api/admin/users
   async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const organizationId = req.user!.organizationId;
@@ -18,9 +16,7 @@ export class AdminController {
     }
   }
 
-  /**
-   * GET /api/admin/roles
-   */
+  // GET /api/admin/roles
   async getRoles(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const organizationId = req.user!.organizationId;
@@ -34,9 +30,7 @@ export class AdminController {
     }
   }
 
-  /**
-   * GET /api/admin/permissions
-   */
+  // GET /api/admin/permissions
   async getPermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const permissions = await adminService.listPermissions();
@@ -49,9 +43,7 @@ export class AdminController {
     }
   }
 
-  /**
-   * POST /api/admin/roles/assign
-   */
+  // POST /api/admin/roles/assign
   async assignRole(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const actorId = req.user!.userId;
@@ -81,9 +73,7 @@ export class AdminController {
     }
   }
 
-  /**
-   * POST /api/admin/roles/revoke
-   */
+  // POST /api/admin/roles/revoke
   async revokeRole(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const actorId = req.user!.userId;
@@ -113,9 +103,7 @@ export class AdminController {
     }
   }
 
-  /**
-   * PATCH /api/admin/users/:userId/status
-   */
+  // PATCH /api/admin/users/:userId/status
   async updateUserStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const actorId = req.user!.userId;

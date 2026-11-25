@@ -5,9 +5,7 @@ import { RegisterInput, LoginInput } from '../validators/auth.validator.js';
 import { UserStatus, IdentityStatus, VerificationStatus } from '@prisma/client';
 
 export class AuthService {
-  /**
-   * Register a new user, create their cryptographic Identity, assign default role, and record audit log
-   */
+  // Register user, create DID identity, assign default role, and log audit event
   async register(input: RegisterInput, clientMeta?: { ipAddress?: string; userAgent?: string }) {
     // 1. Check for existing user
     const existingUser = await prisma.user.findUnique({
@@ -266,9 +264,7 @@ export class AuthService {
     };
   }
 
-  /**
-   * Retrieve full current user profile, cryptographic identity, and assigned permissions
-   */
+  // Get full user profile, DID identity, and permissions
   async getCurrentUser(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -334,9 +330,7 @@ export class AuthService {
     };
   }
 
-  /**
-   * Log user logout in audit trail
-   */
+  // Log user logout in audit trail
   async logout(userId: string, clientMeta?: { ipAddress?: string; userAgent?: string }) {
     await prisma.auditEvent.create({
       data: {

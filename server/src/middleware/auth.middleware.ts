@@ -10,9 +10,7 @@ declare global {
   }
 }
 
-/**
- * Authentication middleware enforcing valid Bearer JWT tokens
- */
+// Verify Bearer JWT token and attach user payload to req.user
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 

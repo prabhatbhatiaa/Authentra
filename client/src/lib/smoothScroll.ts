@@ -1,10 +1,6 @@
 import Lenis from 'lenis';
 
-/**
- * Single Lenis instance for inertial smooth scrolling on the marketing site.
- * Touch devices keep native scrolling (Lenis default), and users who prefer
- * reduced motion never get an instance at all.
- */
+// Single Lenis instance for smooth scrolling on the landing page (skipped on touch / reduced motion).
 let lenis: Lenis | null = null;
 
 export function startSmoothScroll(): Lenis | null {
@@ -28,7 +24,7 @@ export function getLenis(): Lenis | null {
   return lenis;
 }
 
-/** Scroll to an element id, through Lenis when active. */
+// Scroll to an element id, using Lenis when active.
 export function scrollToId(id: string, offset = -64) {
   const el = document.getElementById(id);
   if (!el) return;

@@ -2,10 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verificationService } from '../services/verification.service.js';
 
 export class VerificationController {
-  /**
-   * GET /api/verification/verify/:identifier
-   * Public verification endpoint accepting assetId, assetNumber, or exact name
-   */
+  // GET /api/verification/verify/:identifier
   async verify(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { identifier } = req.params;

@@ -48,11 +48,7 @@ function SystemStatus({ health, loading }: { health: HealthData | null; loading:
   );
 }
 
-/**
- * Console layout: a fixed full-height sidebar on desktop, and a compact top
- * bar plus bottom tab bar on smaller screens. Content always runs edge to
- * edge with the shared gutter — no centred max-width column.
- */
+// Fixed sidebar on desktop; top bar + bottom tabs on smaller screens.
 export function AppShell({
   user,
   navItems,
@@ -70,7 +66,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen lg:pl-[248px]">
-      {/* ── Desktop sidebar ─────────────────────────────────── */}
+      {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-line/[0.08] bg-canvas lg:flex">
         <div className="flex h-14 items-center border-b border-line/[0.08] px-5">
           <Logo onClick={() => onNavigate('landing')} />
@@ -128,7 +124,7 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* ── Top bar ─────────────────────────────────────────── */}
+      {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-line/[0.08] bg-canvas/85 backdrop-blur-md">
         <div className="gutter flex h-14 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -153,10 +149,10 @@ export function AppShell({
         </div>
       </header>
 
-      {/* ── Page content ────────────────────────────────────── */}
+      {/* Page content */}
       <main className="gutter flex min-h-[calc(100vh-3.5rem)] flex-col pb-28 pt-8 lg:pb-12 lg:pt-10">{children}</main>
 
-      {/* ── Mobile / tablet bottom tab bar ──────────────────── */}
+      {/* Mobile / tablet bottom tab bar */}
       <nav
         aria-label="Primary"
         className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line/[0.08] bg-canvas/95 backdrop-blur-md lg:hidden"

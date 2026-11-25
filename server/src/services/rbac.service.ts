@@ -1,10 +1,7 @@
 import { prisma } from '../config/db.js';
 
 export class RbacService {
-  /**
-   * Resolve live, effective permissions directly from the database for a given user.
-   * Never trusts client-supplied roles or permissions.
-   */
+  // Resolve live permissions from the DB for a user (never trust client-supplied roles)
   async getUserPermissions(userId: string): Promise<{
     roles: string[];
     permissions: string[];
@@ -56,9 +53,7 @@ export class RbacService {
     };
   }
 
-  /**
-   * Check whether a user has a specific permission or belongs to ADMIN role
-   */
+  // Check if a user has a specific permission or belongs to ADMIN role
   async hasPermission(userId: string, requiredPermission: string): Promise<boolean> {
     const { roles, permissions } = await this.getUserPermissions(userId);
     // ADMIN has super-user override
@@ -66,9 +61,7 @@ export class RbacService {
     return permissions.includes(requiredPermission);
   }
 
-  /**
-   * Check whether a user has at least one of multiple permissions
-   */
+  // Check if a user has at least one of the required permissions
   async hasAnyPermission(userId: string, requiredPermissions: string[]): Promise<boolean> {
     const { roles, permissions } = await this.getUserPermissions(userId);
     if (roles.includes('ADMIN')) return true;

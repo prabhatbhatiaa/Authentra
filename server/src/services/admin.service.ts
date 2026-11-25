@@ -2,9 +2,7 @@ import { prisma } from '../config/db.js';
 import { UserStatus } from '@prisma/client';
 
 export class AdminService {
-  /**
-   * List all users within the organization with their identities and assigned roles
-   */
+  // List all users in the org with identities and roles
   async listUsers(organizationId: string) {
     const users = await prisma.user.findMany({
       where: { organizationId },
@@ -52,9 +50,7 @@ export class AdminService {
     }));
   }
 
-  /**
-   * List all available roles with assigned permissions
-   */
+  // List available roles with permissions
   async listRoles(organizationId: string) {
     const roles = await prisma.role.findMany({
       where: {
@@ -85,9 +81,7 @@ export class AdminService {
     }));
   }
 
-  /**
-   * List all system permissions categorized
-   */
+  // List system permissions grouped by category
   async listPermissions() {
     const permissions = await prisma.permission.findMany({
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
@@ -109,10 +103,7 @@ export class AdminService {
     };
   }
 
-  /**
-   * Assign a role to a user.
-   * Rule: Users cannot modify their own privileges.
-   */
+  // Assign a role to a user (self-modification is blocked)
   async assignRole(
     actorId: string,
     targetUserId: string,
@@ -197,10 +188,7 @@ export class AdminService {
     return { success: true, message: `Role ${role.name} assigned successfully.` };
   }
 
-  /**
-   * Revoke a role from a user.
-   * Rule: Users cannot modify their own privileges.
-   */
+  // Revoke a role from a user (self-modification is blocked)
   async revokeRole(
     actorId: string,
     targetUserId: string,
@@ -287,9 +275,7 @@ export class AdminService {
     return { success: true, message: `Role ${role.name} revoked successfully.` };
   }
 
-  /**
-   * Update user account status (e.g. ACTIVE, SUSPENDED, DEACTIVATED)
-   */
+  // Update user account status (ACTIVE, SUSPENDED, DEACTIVATED)
   async updateUserStatus(
     actorId: string,
     targetUserId: string,

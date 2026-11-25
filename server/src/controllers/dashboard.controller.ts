@@ -2,10 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { dashboardService } from '../services/dashboard.service.js';
 
 export class DashboardController {
-  /**
-   * GET /api/dashboard/metrics
-   * Protected endpoint returning executive dashboard metrics
-   */
+  // GET /api/dashboard/metrics
   async getMetrics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const organizationId = req.user!.organizationId;

@@ -15,7 +15,7 @@ interface ModalProps {
   footer?: React.ReactNode;
   className?: string;
   bodyClassName?: string;
-  /** Hide the default header (for fully custom content such as the auth card). */
+  // Hide the default header for custom content like the auth card.
   bare?: boolean;
   children: React.ReactNode;
 }
@@ -26,11 +26,7 @@ const sizes = {
   lg: 'sm:max-w-2xl',
 };
 
-/**
- * Solid-surface dialog. Renders into a portal so page transforms never trap it,
- * closes on Escape / backdrop click, locks body scroll, and becomes a
- * bottom sheet on small screens.
- */
+// Portal dialog with Escape/backdrop close, scroll lock, and mobile bottom-sheet layout.
 export function Modal({
   open,
   onClose,

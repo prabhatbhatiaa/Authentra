@@ -2,10 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { identityService } from '../services/identity.service.js';
 
 export class IdentityController {
-  /**
-   * GET /api/identity/me
-   * Get the current authenticated user's identity details
-   */
+  // GET /api/identity/me
   async getMyIdentity(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user?.userId) {
@@ -39,10 +36,7 @@ export class IdentityController {
     }
   }
 
-  /**
-   * GET /api/identity/resolve/:did
-   * Resolve any public DID document and verification metadata
-   */
+  // GET /api/identity/resolve/:did
   async resolveDid(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const did = req.params.did;
@@ -66,9 +60,7 @@ export class IdentityController {
     }
   }
 
-  /**
-   * PATCH /api/identity/:id/status
-   */
+  // PATCH /api/identity/:id/status
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -106,10 +98,7 @@ export class IdentityController {
     }
   }
 
-  /**
-   * POST /api/identity/:id/verify
-   * Request / update verification status
-   */
+  // POST /api/identity/:id/verify
   async updateVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;

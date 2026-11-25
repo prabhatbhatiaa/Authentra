@@ -18,7 +18,7 @@ const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default:
 const AdminPortalPage = lazy(() => import('./pages/AdminPortalPage').then((m) => ({ default: m.AdminPortalPage })));
 const LegalPage = lazy(() => import('./pages/LegalPage').then((m) => ({ default: m.LegalPage })));
 
-/** Read the active console tab or legal page from the URL hash (`#/assets` or `#/privacy`). */
+// Read the active console tab or legal page from the URL hash (`#/assets` or `#/privacy`).
 function tabFromHash(): TabId {
   const raw = window.location.hash.replace(/^#\/?/, '');
   if (!raw || raw === 'landing' || raw === 'home') return 'landing';

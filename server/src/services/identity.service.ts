@@ -2,9 +2,7 @@ import { prisma } from '../config/db.js';
 import { IdentityStatus, VerificationStatus } from '@prisma/client';
 
 export class IdentityService {
-  /**
-   * Retrieve identity for the current user or by ID with associated user, roles, and asset count
-   */
+  // Get identity by user ID with roles and asset counts
   async getIdentityByUserId(userId: string) {
     const identity = await prisma.identity.findUnique({
       where: { userId },
@@ -99,9 +97,7 @@ export class IdentityService {
     };
   }
 
-  /**
-   * Look up any identity by DID string (e.g. for public verification / lookup)
-   */
+  // Look up identity by DID string
   async getIdentityByDid(did: string) {
     const identity = await prisma.identity.findUnique({
       where: { did },
@@ -157,9 +153,7 @@ export class IdentityService {
     };
   }
 
-  /**
-   * Update identity status (e.g. ACTIVE, SUSPENDED, REVOKED)
-   */
+  // Update identity status (ACTIVE, SUSPENDED, REVOKED)
   async updateStatus(
     identityId: string,
     status: IdentityStatus,
@@ -204,9 +198,7 @@ export class IdentityService {
     return updated;
   }
 
-  /**
-   * Request verification or set verification status
-   */
+  // Set identity verification status
   async updateVerification(
     identityId: string,
     verificationStatus: VerificationStatus,

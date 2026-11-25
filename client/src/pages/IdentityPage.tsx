@@ -22,13 +22,13 @@ import { JsonView } from '../components/ui/JsonView';
 import { formatDateTime } from '../lib/format';
 import { cn } from '../lib/cn';
 
-/** Machine-readable zone line, passport style: uppercase, `<` padded to a fixed width. */
+// Passport-style MRZ line, uppercase and `<` padded.
 function mrz(text: string, width = 44) {
   const clean = text.toUpperCase().replace(/[^A-Z0-9]/g, '<');
   return (clean + '<'.repeat(width)).slice(0, width);
 }
 
-/** Monochrome credential "data page" for the signed-in identity. */
+// Monochrome credential card for the signed-in identity.
 function CredentialCard({ identity }: { identity: DetailedIdentity }) {
   const verified = identity.verificationStatus === 'VERIFIED';
   const holder = identity.user.firstName

@@ -28,7 +28,7 @@ interface BadgeProps {
   children: React.ReactNode;
 }
 
-/** Quiet status label: hairline outline, tinted text, optional square dot. */
+// Status label with hairline outline, tinted text, and optional dot.
 export function Badge({ tone = 'neutral', dot, className, children }: BadgeProps) {
   return (
     <span
@@ -44,7 +44,7 @@ export function Badge({ tone = 'neutral', dot, className, children }: BadgeProps
   );
 }
 
-/** Tone for an asset lifecycle status. */
+// Tone for an asset lifecycle status.
 export function assetStatusTone(status: string): Tone {
   switch (status) {
     case 'ACTIVE':
@@ -61,7 +61,7 @@ export function assetStatusTone(status: string): Tone {
   }
 }
 
-/** Tone for an audit / activity action string such as `ASSET_REVOKED`. */
+// Tone for an audit or activity action string.
 export function actionTone(action: string): Tone {
   if (action.includes('REVOKE') || action.includes('DELETE') || action.includes('FAILED')) return 'bad';
   if (action.includes('MINT') || action.includes('CREATED') || action.includes('LOGIN')) return 'ok';

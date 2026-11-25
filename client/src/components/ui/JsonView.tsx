@@ -9,7 +9,7 @@ interface JsonViewProps {
 // Matches JSON strings (optionally followed by a colon → object key), literals and numbers.
 const TOKEN = /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g;
 
-/** Read-only, syntax-highlighted JSON block. Rendered as React nodes (no innerHTML). */
+// Read-only syntax-highlighted JSON block rendered as React nodes.
 export function JsonView({ value, className }: JsonViewProps) {
   const nodes = useMemo(() => {
     const text = JSON.stringify(value, null, 2) ?? 'null';

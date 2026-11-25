@@ -1,35 +1,8 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-/**
- * ParticleField — one WebGL particle object that lives behind the whole landing
- * page and morphs as the visitor scrolls. Every scene is a miniature of what
- * Authentra does:
- *
- *   bio/crest   hero — the Biometric Vault: a fingerprint whorl that periodically
- *               aligns its ridges into a shield crest and dissolves back, swept
- *               by a scanner band (autonomous cycle, scroll hands off to the
- *               next scene through a continuous crossfade)
- *   fingerprint manifesto — a biometric whorl (W3C DID identity standard)
- *   ledger      architecture — a chain of Aptos blocks linked by hash bridges
- *   custody     lifecycle — a double helix of custody with sealed record blocks
- *   orbits      capabilities — an RBAC system: roles orbiting an authority core
- *   scan        verifier — a radar sweep with verified-asset blips
- *   vault       closing — a geodesic cage locked around a padlock
- *
- * Every section marks itself with `data-scene="<shape>"` plus optional placement
- * attributes (`data-x`, `data-y`, `data-scale`, `data-opacity`,
- * `data-mobile-opacity`, `data-rx`, `data-spin`). The field interpolates between
- * consecutive sections: the particles hold a shape while its section is on
- * screen and morph into the next one during the last stretch before it arrives.
- *
- * Interaction: the cursor carries a field that parts and brightens nearby
- * particles, and every click emits a radar ping — both resolved in the vertex
- * shader. Performance: a single `THREE.Points` draw call; all morphing,
- * staggering, shimmer, scanning and cursor response happen on the GPU. Pixel
- * ratio is capped, rendering pauses when the tab is hidden, and reduced-motion
- * users get a still shield that only follows scroll.
- */
+// WebGL particle field that morphs between sections as you scroll
+// runs in a single THREE.Points draw call on the GPU
 
 const SHAPES = ['bio', 'crest', 'fingerprint', 'ledger', 'custody', 'orbits', 'scan', 'vault'] as const;
 type ShapeName = (typeof SHAPES)[number];
@@ -41,14 +14,14 @@ interface Stop {
   y: number;
   scale: number;
   opacity: number;
-  /** Opacity on narrow screens, where the object sits behind the text. */
+  // Opacity on narrow screens where the object sits behind text.
   mobileOpacity: number;
   rx: number;
-  /** Continuous rotation speed in rad/s while this stop holds. */
+  // Continuous rotation speed in rad/s while this stop holds.
   spin: number;
 }
 
-/* ── Shape generators (all return `count` xyz triples, radius ≈ 1.5 - 2.8) ─── */
+// Shape generators (return `count` xyz triples, radius ~1.5 - 2.8)
 
 function rand(seed: number) {
   // Deterministic hash → [0,1) so shapes are identical between renders.
@@ -56,7 +29,7 @@ function rand(seed: number) {
   return x - Math.floor(x);
 }
 
-/** Sample a point on the wireframe edges of an axis-aligned cube of size `s`. */
+// Sample a point on the edges of an axis-aligned cube of size `s`.
 function cubeEdge(s: number, r1: number, r2: number, r3: number): [number, number, number] {
   const axis = Math.floor(r1 * 3); // 0, 1 or 2 — the coordinate that varies
   const side = Math.floor(r2 * 4); // which of the 4 parallel edges
@@ -67,15 +40,7 @@ function cubeEdge(s: number, r1: number, r2: number, r3: number): [number, numbe
   return axis === 0 ? [v, a * h, b * h] : axis === 1 ? [a * h, v, b * h] : [a * h, b * h, v];
 }
 
-/**
- * Hero pair — Dual-Consensus Custody Vault ⇄ Hypercube Block Seal.
- * Every structural element maps directly to Authentra:
- *   - Core: Faceted 3D Asset Crystal ⇄ Tesseract Block Anchor (Move resource + SHA-256 digest)
- *   - Rings: Three tilted Identity (DID), Access (RBAC) & Custody (Aptos) orbits
- *   - Nodes: Consensus validator clusters along the outer shell
- *   - Filaments: Dual-consensus sync streams bridging off-chain & on-chain layers
- *   - Ambient: Expansive 3D provenance field filling the viewport
- */
+// hero morph: asset crystal <-> hypercube block seal
 function heroPair(count: number): { bio: Float32Array; crest: Float32Array } {
   const bio = new Float32Array(count * 3);
   const crest = new Float32Array(count * 3);

@@ -12,10 +12,7 @@ export interface IndexingResult {
 }
 
 export class IndexerService {
-  /**
-   * Sync on-chain events and transactions from Aptos to PostgreSQL.
-   * Ensures idempotency: duplicate transaction hashes or events are safely skipped.
-   */
+  // Sync on-chain events and transactions from Aptos to PostgreSQL idempotently
   async syncBlockchainEvents(): Promise<IndexingResult> {
     const syncedAt = new Date().toISOString();
     const network = blockchainService.getNetwork();
@@ -169,9 +166,7 @@ export class IndexerService {
     };
   }
 
-  /**
-   * Get current indexing status and metrics
-   */
+  // Get current indexing status and metrics
   async getIndexingStatus() {
     const [totalIndexedTxs, totalOnChainAuditEvents, latestTx] = await Promise.all([
       prisma.blockchainTransaction.count(),

@@ -1,10 +1,7 @@
 import crypto from 'crypto';
 import { Account } from '@aptos-labs/ts-sdk';
 
-/**
- * Derives a deterministic or cryptographically generated Aptos wallet address and DID.
- * Follows W3C standard: did:authentra:aptos:<address>
- */
+// Derive or generate an Aptos wallet address and W3C DID (did:authentra:aptos:<address>)
 export function generateCryptographicIdentity(providedWalletAddress?: string): {
   did: string;
   walletAddress: string;
@@ -28,9 +25,7 @@ export function generateCryptographicIdentity(providedWalletAddress?: string): {
   };
 }
 
-/**
- * Formats a DID for user display
- */
+// Truncate DID for display
 export function formatDidForDisplay(did: string): string {
   if (!did) return '';
   if (did.length <= 24) return did;

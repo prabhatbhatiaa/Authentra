@@ -2,9 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
 
 export class AuthController {
-  /**
-   * POST /api/auth/register
-   */
+  // POST /api/auth/register
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const clientMeta = {
@@ -33,9 +31,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/auth/login
-   */
+  // POST /api/auth/login
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const clientMeta = {
@@ -64,9 +60,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * GET /api/auth/me
-   */
+  // GET /api/auth/me
   async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user?.userId) {
@@ -102,9 +96,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/auth/logout
-   */
+  // POST /api/auth/logout
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const clientMeta = {

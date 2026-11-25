@@ -2,10 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { assetService } from '../services/asset.service.js';
 
 export class AssetController {
-  /**
-   * POST /api/assets
-   * Create / Draft a new digital asset
-   */
+  // POST /api/assets
   async createAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const actor = {
@@ -27,10 +24,7 @@ export class AssetController {
     }
   }
 
-  /**
-   * GET /api/assets
-   * List all assets
-   */
+  // GET /api/assets
   async listAssets(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const assets = await assetService.listAssets(req.user!.organizationId);
@@ -43,10 +37,7 @@ export class AssetController {
     }
   }
 
-  /**
-   * GET /api/assets/:id
-   * Get single asset details
-   */
+  // GET /api/assets/:id
   async getAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -69,10 +60,7 @@ export class AssetController {
     }
   }
 
-  /**
-   * POST /api/assets/:id/mint
-   * Mint asset on-chain
-   */
+  // POST /api/assets/:id/mint
   async mintAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -95,10 +83,7 @@ export class AssetController {
     }
   }
 
-  /**
-   * POST /api/assets/:id/assign
-   * Assign asset to custodian / owner
-   */
+  // POST /api/assets/:id/assign
   async assignAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -122,10 +107,7 @@ export class AssetController {
     }
   }
 
-  /**
-   * POST /api/assets/:id/transfer
-   * Transfer asset custody
-   */
+  // POST /api/assets/:id/transfer
   async transferAsset(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -176,10 +158,7 @@ export class AssetController {
     }
   }
 
-  /**
-   * GET /api/assets/:id/history
-   * Get ownership interval history
-   */
+  // GET /api/assets/:id/history
   async getHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;

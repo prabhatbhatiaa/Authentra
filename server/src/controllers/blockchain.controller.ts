@@ -4,10 +4,7 @@ import { indexerService } from '../services/indexer.service.js';
 
 export class BlockchainController {
 
-  /**
-   * GET /api/blockchain/status
-   * Retrieve real-time network, ledger info, module configuration, and signer status
-   */
+  // GET /api/blockchain/status
   async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       let ledgerInfo = null;
@@ -43,10 +40,7 @@ export class BlockchainController {
     }
   }
 
-  /**
-   * GET /api/blockchain/transactions/:txHash
-   * Retrieve transaction details directly from the Aptos node
-   */
+  // GET /api/blockchain/transactions/:txHash
   async getTransaction(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { txHash } = req.params;
@@ -72,10 +66,7 @@ export class BlockchainController {
     }
   }
 
-  /**
-   * GET /api/blockchain/account/:address
-   * Retrieve balance and on-chain identity for an address
-   */
+  // GET /api/blockchain/account/:address
   async getAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { address } = req.params;
@@ -96,10 +87,7 @@ export class BlockchainController {
     }
   }
 
-  /**
-   * POST /api/blockchain/sync
-   * Trigger idempotent event & transaction sync from Aptos to PostgreSQL
-   */
+  // POST /api/blockchain/sync
   async sync(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await indexerService.syncBlockchainEvents();
@@ -113,10 +101,7 @@ export class BlockchainController {
     }
   }
 
-  /**
-   * GET /api/blockchain/sync/status
-   * Get current indexer metrics and synchronization status
-   */
+  // GET /api/blockchain/sync/status
   async getSyncStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const status = await indexerService.getIndexingStatus();

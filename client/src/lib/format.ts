@@ -1,4 +1,4 @@
-/** Shorten a long hex string / DID for display: `0x65df…d7a`. */
+// Shorten a long hex string or DID for display (e.g. `0x65df…d7a`).
 export function truncateMiddle(value: string | null | undefined, head = 10, tail = 6): string {
   if (!value) return '';
   if (value.length <= head + tail + 1) return value;
@@ -21,7 +21,7 @@ export function formatTime(iso: string | null | undefined): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-/** "3m ago", "2h ago", "Apr 4" */
+// "3m ago", "2h ago", "Apr 4"
 export function formatRelative(iso: string | null | undefined): string {
   if (!iso) return '—';
   const diff = Date.now() - new Date(iso).getTime();

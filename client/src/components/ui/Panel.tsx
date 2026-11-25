@@ -9,7 +9,7 @@ interface PanelProps extends Omit<React.HTMLAttributes<HTMLElement>, 'title'> {
   bodyClassName?: string;
 }
 
-/** Solid content card with an optional titled header row. */
+// Solid content card with an optional titled header row.
 export function Panel({
   title,
   icon: Icon,

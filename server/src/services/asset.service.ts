@@ -10,9 +10,7 @@ export interface AssetActorMeta {
 }
 
 export class AssetService {
-  /**
-   * CREATE: Drafts a new digital asset in the database
-   */
+  // Draft a new digital asset in the database
   async createAsset(
     data: { name: string; description?: string; assetType: string; metadata?: Record<string, any> },
     actor: AssetActorMeta
@@ -59,9 +57,7 @@ export class AssetService {
     return asset;
   }
 
-  /**
-   * MINT: Mints the drafted asset onto the Aptos blockchain (or marks minted with on-chain cryptographic anchor)
-   */
+  // Mint drafted asset on Aptos (or mark minted with on-chain anchor)
   async mintAsset(assetId: string, actor: AssetActorMeta) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },
@@ -174,9 +170,7 @@ export class AssetService {
     return { asset: updatedAsset, txHash };
   }
 
-  /**
-   * ASSIGN: Assigns asset to a designated identity (transitions to ACTIVE)
-   */
+  // Assign asset to an identity (transitions to ACTIVE)
   async assignAsset(assetId: string, targetIdentityId: string, notes: string | undefined, actor: AssetActorMeta) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },
@@ -286,9 +280,7 @@ export class AssetService {
     return { asset: updatedAsset, txHash };
   }
 
-  /**
-   * TRANSFER: Custody transfer between identities
-   */
+  // Transfer asset custody between identities
   async transferAsset(assetId: string, targetIdentityId: string, reason: string, actor: AssetActorMeta) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },
@@ -397,9 +389,7 @@ export class AssetService {
     return { asset: updatedAsset, txHash };
   }
 
-  /**
-   * REVOKE: Revokes an asset permanently
-   */
+  // Revoke an asset permanently
   async revokeAsset(assetId: string, reason: string, actor: AssetActorMeta) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },
@@ -486,9 +476,7 @@ export class AssetService {
     return { asset: updatedAsset, txHash };
   }
 
-  /**
-   * LIST: Get assets for organization
-   */
+  // List assets for an organization
   async listAssets(organizationId: string) {
     return await prisma.asset.findMany({
       where: { organizationId },
@@ -506,9 +494,7 @@ export class AssetService {
     });
   }
 
-  /**
-   * GET: Get single asset by ID
-   */
+  // Get single asset by ID
   async getAssetById(assetId: string, organizationId: string) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },
@@ -534,9 +520,7 @@ export class AssetService {
     return asset;
   }
 
-  /**
-   * HISTORY: Get ownership history intervals
-   */
+  // Get ownership history intervals
   async getOwnershipHistory(assetId: string, organizationId: string) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },

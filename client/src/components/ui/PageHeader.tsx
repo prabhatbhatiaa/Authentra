@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/cn';
 
 interface PageHeaderProps {
-  /** Short context line above the title, e.g. "Identity". */
+  // Short context line above the title, e.g. "Identity".
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -11,7 +11,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-/** Console page header: serif title, muted description, actions on the right. */
+// Console page header with serif title, description, and right-aligned actions.
 export function PageHeader({ eyebrow, title, description, actions, meta, className }: PageHeaderProps) {
   return (
     <header

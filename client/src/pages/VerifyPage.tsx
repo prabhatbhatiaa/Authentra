@@ -101,7 +101,7 @@ const verdictMeta: Record<
   NOT_FOUND: { label: 'Not found', tone: 'neutral', ring: 'text-fg-subtle', text: 'text-fg-muted', icon: XCircle },
 };
 
-/** Rotating circular seal stamped with the verdict. */
+// Rotating seal stamped with the verdict.
 function VerdictSeal({ verdict }: { verdict: Verdict }) {
   const meta = verdictMeta[verdict];
   const Icon = meta.icon;

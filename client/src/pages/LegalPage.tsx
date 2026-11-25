@@ -156,7 +156,7 @@ export function LegalPage({
 
   return (
     <div className="min-h-screen bg-canvas text-fg selection:bg-accent/20">
-      {/* ── Fixed Header ───────────────────────────────────────────── */}
+      {/* Header */}
       <header className="fixed inset-x-0 top-0 z-50 border-b border-line/[0.08] bg-canvas/80 backdrop-blur-md transition-[background-color,border-color] duration-300">
         <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-6">
@@ -208,7 +208,7 @@ export function LegalPage({
         </div>
       </header>
 
-      {/* ── Main Legal Container ──────────────────────────────────── */}
+      {/* Main content */}
       <main className="relative pb-24 pt-32 sm:pt-40">
         {/* Subtle ambient atmospheric top glow (inspired by somentm) */}
         <div
@@ -319,7 +319,7 @@ export function LegalPage({
           </div>
         </div>
 
-        {/* ── Giant Architectural Watermark (somentm inspired) ─────────── */}
+        {/* Watermark */}
         <div className="relative mt-24 mb-6 flex justify-center select-none overflow-hidden" aria-hidden="true">
           <span
             className="select-none px-[0.08em] font-sans text-[13vw] font-black leading-[1.1] tracking-tight text-transparent opacity-15 dark:opacity-20"
@@ -342,9 +342,7 @@ export function LegalPage({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   DETAILED PRIVACY POLICY SECTIONS
-   ───────────────────────────────────────────────────────────────────────────── */
+// Privacy policy sections
 function DetailedPrivacyContent() {
   return (
     <div>
@@ -523,9 +521,7 @@ function DetailedPrivacyContent() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   DETAILED TERMS OF SERVICE SECTIONS
-   ───────────────────────────────────────────────────────────────────────────── */
+// Terms of service sections
 function DetailedTermsContent() {
   return (
     <div>
@@ -663,9 +659,7 @@ function DetailedTermsContent() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   DETAILED SECURITY ARCHITECTURE SECTIONS
-   ───────────────────────────────────────────────────────────────────────────── */
+// Security architecture sections
 function DetailedSecurityContent() {
   return (
     <div>
@@ -794,9 +788,7 @@ function DetailedSecurityContent() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   DETAILED COMPLIANCE & STANDARDS SECTIONS
-   ───────────────────────────────────────────────────────────────────────────── */
+// Compliance & standards sections
 function DetailedComplianceContent() {
   return (
     <div>

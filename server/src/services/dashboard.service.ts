@@ -41,9 +41,7 @@ export interface DashboardMetrics {
 }
 
 export class DashboardService {
-  /**
-   * Aggregate high-level executive metrics for an organization
-   */
+  // Aggregate high-level metrics for an organization
   async getMetrics(organizationId: string): Promise<DashboardMetrics> {
     // Run DB aggregation queries in parallel
     const [

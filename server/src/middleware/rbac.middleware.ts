@@ -1,13 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { rbacService } from '../services/rbac.service.js';
 
-/**
- * Authorization middleware enforcing specific permission.
- * Resolves permissions server-side from PostgreSQL and blocks unauthorized access with 403 Forbidden.
- *
- * Example:
- *   router.post('/assets', authenticate, authorize('ASSET_CREATE'), controller.createAsset);
- */
+// Require a specific permission (resolved from DB) or return 403
 export const authorize = (requiredPermission: string) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -43,9 +37,7 @@ export const authorize = (requiredPermission: string) => {
   };
 };
 
-/**
- * Authorization middleware requiring ANY one of multiple permissions
- */
+// Require any one of the given permissions
 export const authorizeAny = (requiredPermissions: string[]) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

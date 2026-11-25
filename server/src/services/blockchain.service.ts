@@ -77,37 +77,27 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Check if the blockchain client is ready with an admin signer
-   */
+  // Check if the blockchain client has an admin signer configured
   public isSignerConfigured(): boolean {
     return this.adminAccount !== null && !!this.moduleAddress;
   }
 
-  /**
-   * Get the connected Aptos network name
-   */
+  // Get the connected Aptos network name
   public getNetwork(): string {
     return this.network;
   }
 
-  /**
-   * Get module address
-   */
+  // Get module address
   public getModuleAddress(): string {
     return this.moduleAddress;
   }
 
-  /**
-   * Get ledger info to check blockchain connectivity
-   */
+  // Get ledger info to check blockchain connectivity
   public async getLedgerInfo() {
     return await this.aptos.getLedgerInfo();
   }
 
-  /**
-   * Get account balance in Octas (1 APT = 10^8 Octas)
-   */
+  // Get account balance in Octas (1 APT = 10^8 Octas)
   public async getAccountBalance(accountAddress: string): Promise<number> {
     try {
       const balance = await this.aptos.getAccountAPTAmount({
@@ -119,9 +109,7 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Retrieve transaction details by transaction hash
-   */
+  // Get transaction details by hash
   public async getTransaction(txHash: string): Promise<CommittedTransactionResponse | null> {
     try {
       const tx = await this.aptos.getTransactionByHash({
@@ -133,9 +121,7 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Fetch recent transactions submitted by an account on Aptos
-   */
+  // Fetch recent transactions submitted by an account on Aptos
   public async getAccountTransactions(accountAddress: string, limit: number = 25): Promise<any[]> {
     try {
       const txs = await this.aptos.getAccountTransactions({
@@ -193,9 +179,7 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Read on-chain view function
-   */
+  // Read on-chain view function
   public async readViewFunction<T = any>(payload: InputViewFunctionData): Promise<T> {
     try {
       const result = await this.aptos.view({ payload });
@@ -207,9 +191,7 @@ export class BlockchainService {
 
   // --- Specialized On-Chain Read Methods ---
 
-  /**
-   * Read on-chain identity record
-   */
+  // Read on-chain identity record
   public async getOnChainIdentity(walletAddress: string): Promise<OnChainIdentity | null> {
     if (!this.moduleAddress) return null;
 
@@ -234,9 +216,7 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Read on-chain asset record
-   */
+  // Read on-chain asset record
   public async getOnChainAsset(assetId: string): Promise<OnChainAsset | null> {
     if (!this.moduleAddress) return null;
 
@@ -262,9 +242,7 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Read on-chain ownership history for an asset
-   */
+  // Read on-chain ownership history for an asset
   public async getOnChainOwnershipHistory(assetId: string): Promise<OnChainOwnershipRecord[]> {
     if (!this.moduleAddress) return [];
 

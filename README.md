@@ -1,6 +1,8 @@
 <h1 align="center">Authentra</h1>
 
-**Enterprise Identity, Role-Based Access Control & Digital-Asset Custody on Aptos**
+<div align="center">
+<p bold>Enterprise Identity, Role-Based Access Control & Digital-Asset Custody on Aptos</p>
+</div>
 
 Authentra is a zero-trust institutional platform that binds **W3C Decentralized Identifiers (DIDs)**, **server-enforced RBAC**, and **non-destructive digital-asset lifecycles** to the **Aptos Move** blockchain. It pairs relational database throughput with cryptographic, publicly verifiable on-chain provenance.
 

@@ -19,12 +19,13 @@ export function HeroSection({ blockHeight, onOpenAuth, onNavigate }: HeroSection
 
   return (
     <section
-      data-scene="sphere"
-      data-x="0.5"
-      data-y="0.16"
-      data-scale="0.74"
-      data-rx="0.32"
-      data-mobile-opacity="0.9"
+      data-scene="bio"
+      data-x="0.34"
+      data-y="0.04"
+      data-scale="1.12"
+      data-rx="0.28"
+      data-spin="0.045"
+      data-mobile-opacity="0.72"
       className="relative flex min-h-[100svh] flex-col pt-16"
     >
       {/* Top meta row */}
@@ -42,20 +43,30 @@ export function HeroSection({ blockHeight, onOpenAuth, onNavigate }: HeroSection
 
       {/* Headline anchored bottom-left; the 3D object occupies the right half */}
       <div className="gutter flex flex-1 items-end pb-6 pt-20 sm:pt-24 md:pt-14 lg:pb-10">
-        <h1 className="font-serif text-[clamp(3.25rem,min(9vw,15vh),9.5rem)] leading-[0.92] tracking-[-0.03em] text-fg text-left">
-          {lines.map((line, i) => (
-            <span key={line} className="-mb-[0.14em] -ml-2 -mr-8 block overflow-hidden px-2 pb-[0.14em] pr-8">
-              <motion.span
-                className={i === 2 ? 'block italic pr-4' : 'block'}
-                initial={{ y: '102%' }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.9, ease, delay: 0.15 + i * 0.07 }}
-              >
-                {line}
-              </motion.span>
-            </span>
-          ))}
-        </h1>
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-6 -inset-y-6 -z-10 bg-canvas/50 backdrop-blur-[5px]"
+            style={{
+              maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+            }}
+          />
+          <h1 className="font-serif text-[clamp(3.25rem,min(9vw,15vh),9.5rem)] leading-[0.92] tracking-[-0.03em] text-fg text-left">
+            {lines.map((line, i) => (
+              <span key={line} className="-mb-[0.14em] -ml-2 -mr-8 block overflow-hidden px-2 pb-[0.14em] pr-8">
+                <motion.span
+                  className={i === 2 ? 'block italic pr-4' : 'block'}
+                  initial={{ y: '102%' }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 0.9, ease, delay: 0.15 + i * 0.07 }}
+                >
+                  {line}
+                </motion.span>
+              </span>
+            ))}
+          </h1>
+        </div>
       </div>
 
       {/* Bottom rail */}
@@ -63,7 +74,7 @@ export function HeroSection({ blockHeight, onOpenAuth, onNavigate }: HeroSection
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.45 }}
-        className="grid grid-cols-2 border-t border-line/10 lg:grid-cols-12"
+        className="grid grid-cols-2 border-t border-line/10 bg-canvas/55 backdrop-blur-[5px] lg:grid-cols-12"
       >
         <div className="gutter col-span-2 space-y-4 py-5 lg:col-span-6 lg:py-6">
           <p className="max-w-xl text-[16px] leading-relaxed text-fg-muted">

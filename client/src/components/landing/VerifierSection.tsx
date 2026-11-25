@@ -11,10 +11,29 @@ const checks = [
 
 export function VerifierSection() {
   return (
-    <section id="verify" data-scene="none" className="relative bg-canvas">
+    <section
+      id="verify"
+      data-scene="scan"
+      data-x="-0.28"
+      data-y="0"
+      data-scale="1.02"
+      data-opacity="0.3"
+      data-mobile-opacity="0.14"
+      data-rx="0.38"
+      data-spin="0.08"
+      className="relative"
+    >
       <SectionLabel index="05" label="Verify" />
       <div className="gutter grid grid-cols-12 gap-x-8 gap-y-10 py-14 lg:py-20">
-        <div className="col-span-12 lg:col-span-4">
+        <div className="relative col-span-12 lg:col-span-4">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-6 -inset-y-6 -z-10 bg-canvas/55 backdrop-blur-[6px]"
+            style={{
+              maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+            }}
+          />
           <Reveal>
             <h2 className="font-serif text-display-lg text-fg">Don’t trust. Verify.</h2>
           </Reveal>

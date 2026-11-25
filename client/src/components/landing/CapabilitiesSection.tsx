@@ -37,10 +37,18 @@ const capabilities = [
 
 export function CapabilitiesSection() {
   return (
-    <section id="capabilities" data-scene="lattice" data-x="0" data-y="0" data-scale="1.15" data-opacity="0.2" data-rx="0.6" className="relative">
+    <section id="capabilities" data-scene="orbits" data-x="0" data-y="0" data-scale="1.08" data-opacity="0.24" data-mobile-opacity="0.15" data-rx="0.45" data-spin="0.04" className="relative">
       <SectionLabel index="04" label="Platform" />
       <div className="gutter grid grid-cols-12 gap-y-4 pb-10 pt-14 lg:pt-20">
-        <Reveal className="col-span-12 lg:col-span-8">
+        <Reveal className="relative col-span-12 lg:col-span-8">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-6 -inset-y-6 -z-10 bg-canvas/55 backdrop-blur-[6px]"
+            style={{
+              maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+            }}
+          />
           <h2 className="font-serif text-display-lg text-fg">Everything an institution needs to prove custody.</h2>
         </Reveal>
       </div>

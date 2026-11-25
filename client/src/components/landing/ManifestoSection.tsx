@@ -16,17 +16,27 @@ export function ManifestoSection() {
   const words = statement.split(' ');
 
   return (
-    <section data-scene="torus" data-x="0.58" data-y="0" data-scale="0.88" data-opacity="0.6" data-rx="0.52" className="relative">
+    <section data-scene="fingerprint" data-x="0.45" data-y="0" data-scale="0.92" data-opacity="0.38" data-mobile-opacity="0.22" data-rx="0.42" data-spin="0.035" className="relative">
       <SectionLabel index="01" label="Thesis" />
       <div className="gutter grid grid-cols-12 py-16 lg:py-28">
-        <p
-          ref={ref}
-          className="col-span-12 font-serif text-[clamp(2.2rem,5.4vw,5.6rem)] leading-[1.02] tracking-[-0.025em] text-fg lg:col-span-10"
-        >
-          {words.map((w, i) => (
-            <Word key={i} word={w} progress={scrollYProgress} range={[i / words.length, (i + 1) / words.length]} />
-          ))}
-        </p>
+        <div className="relative col-span-12 lg:col-span-10">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-8 -inset-y-8 -z-10 bg-canvas/55 backdrop-blur-[6px]"
+            style={{
+              maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+            }}
+          />
+          <p
+            ref={ref}
+            className="font-serif text-[clamp(2.2rem,5.4vw,5.6rem)] leading-[1.02] tracking-[-0.025em] text-fg"
+          >
+            {words.map((w, i) => (
+              <Word key={i} word={w} progress={scrollYProgress} range={[i / words.length, (i + 1) / words.length]} />
+            ))}
+          </p>
+        </div>
       </div>
     </section>
   );

@@ -59,10 +59,18 @@ export function LifecycleSection() {
   }, []);
 
   return (
-    <section id="lifecycle" data-scene="helix" data-x="-0.5" data-y="0" data-scale="0.8" data-rx="0.18" className="relative">
+    <section id="lifecycle" data-scene="custody" data-x="-0.42" data-y="0" data-scale="0.92" data-opacity="0.82" data-mobile-opacity="0.25" data-rx="0.22" data-spin="0.05" className="relative">
       <SectionLabel index="03" label="Lifecycle" />
       <div className="gutter grid grid-cols-12 gap-y-12 py-20 lg:py-28">
-        <div className="col-span-12 lg:col-span-6 lg:col-start-7">
+        <div className="relative col-span-12 lg:col-span-6 lg:col-start-7">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-6 -inset-y-6 -z-10 bg-canvas/55 backdrop-blur-[6px]"
+            style={{
+              maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 78%)',
+            }}
+          />
           <h2 className="font-serif text-display-lg text-fg">Every state, on the record.</h2>
           <p className="mt-6 max-w-md text-[17px] leading-relaxed text-fg-muted">
             Each transition is an API call, a Move function and an audit entry — in that order, every time.
